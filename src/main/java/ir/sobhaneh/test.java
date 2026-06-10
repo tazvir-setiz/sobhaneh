@@ -1,9 +1,11 @@
 package ir.sobhaneh;
 
-import ir.sobhaneh.user.User;
+
+import ir.sobhaneh.user.UserDTO;
+import static ir.sobhaneh.user.UserService.userCreate;
 
 public class test {
     public static void main(String[] args) {
-        User p = User.userCreate();
+        UserDTO user = userCreate();
     }
 }
