@@ -12,11 +12,11 @@ public class UserDTO {
         password_ = password;
     }
 
-    public String getPhoneNumber() {
+    String getPhoneNumber() {
         return phoneNumber_;
     }
 
-    public String getPassword() {
+    String getPassword() {
         return password_;
     }
 }
