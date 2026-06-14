@@ -8,147 +8,94 @@ import java.util.Scanner;
 public class UserService {
 
     public static UserDTO userCreate() {
-
-        System.out.println("Enter user phone number:");
-        String phN = getPhoneNumberFromInput();
-
-        System.out.println("Enter " + phN + " password:");
-        String password = getPasswordFromInput();
-
+        String phN = getPhoneNumberFromInput("Enter user phone number:");
+        String password = getPasswordFromInput("Enter " + phN + " password:");
         return new UserDTO(phN, password);
     }
 
     public static UserDTO setPassword(UserDTO user) {
-
-        System.out.println("Enter new password for " + user.getPhoneNumber() + ":");
-
-        String password = getPasswordFromInput();
-
+        String password = getPasswordFromInput("Enter new password for " + user.getPhoneNumber() + ":");
         return new UserDTO(user.getPhoneNumber(), password);
     }
 
     public static UserDTO setPhoneNumber(UserDTO user) {
-
-        System.out.println("Enter new phone number for " + user.getPhoneNumber() + ":");
-
-        String phoneNumber = getPhoneNumberFromInput();
-
+        String phoneNumber = getPhoneNumberFromInput("Enter new phone number for " + user.getPhoneNumber() + ":");
         return new UserDTO(phoneNumber, user.getPassword());
     }
 
-    private static String getPhoneNumberFromInput() {
+    private static String getPhoneNumberFromInput(String msg) {
+        System.out.println(msg);
         Scanner input = new Scanner(System.in);
-
-        String phoneNumber = input.nextLine();
-
-        if (!checkPhoneNumber(phoneNumber)) {
-            System.out.println("try again");
-            return getPhoneNumberFromInput();
-        }
-
+        String phoneNumber;
+        do {
+            try {
+                phoneNumber = input.nextLine();
+                checkPhoneNumber(phoneNumber);
+                System.out.println("Your phone number is valid!");
+                break;
+            } catch (PhoneNumberException ex) {
+                System.out.println(ex.getMessage());
+                System.out.println("try again");
+            }
+        } while (true);
         return phoneNumber;
     }
 
-    private static String getPasswordFromInput() {
+    private static String getPasswordFromInput(String msg) {
+        System.out.println(msg);
         Scanner input = new Scanner(System.in);
 
-        String password = input.nextLine();
-
-        if (!checkPassword(password)) {
-            System.out.println("try again");
-            return getPasswordFromInput();
-        }
-
+        String password;
+        do {
+            try {
+                password = input.nextLine();
+                checkPassword(password);
+                System.out.println("Your phone number is valid!");
+                break;
+            } catch (PasswordException ex) {
+                System.out.println(ex.getMessage());
+                System.out.println("try again");
+            }
+        } while (true);
         return password;
     }
 
-    private static boolean checkPassword(String pass) {
-
-        boolean check = true;
-
-        if (pass == null) {
-            System.out.println("Password is null");
-            return false;
-        }
-
+    private static void checkPassword(String pass) throws PasswordException {
+        if (pass == null) throw new PasswordException("Password is null");
         pass = pass.trim();
-
-        if (pass.isEmpty()) {
-            System.out.println("Password is empty");
-            check = false;
-        }
-
-        if (pass.contains(" ")) {
-            System.out.println("Password must not contain spaces");
-            check = false;
-        }
-
-        if (pass.length() < 8) {
-            System.out.println("Password is too short (min 8)");
-            check = false;
-        }
-
-        if (pass.length() > 50) {
-            System.out.println("Password is too long (max 50)");
-            check = false;
-        }
-
+        if (pass.isEmpty()) throw new PasswordException("Password is empty");
+        if (pass.contains(" ")) throw new PasswordException("Password must not contain spaces");
+        if (pass.length() < 8) throw new PasswordException("Password is too short (min 8)");
+        if (pass.length() > 50) throw new PasswordException("Password is too long (max 50)");
         boolean hasUpper = false;
         boolean hasSpecial = false;
-
         for (int i = 0; i < pass.length(); i++) {
-
             char c = pass.charAt(i);
-
-            if (Character.isUpperCase(c))
-                hasUpper = true;
-
-            if (!Character.isLetterOrDigit(c))
-                hasSpecial = true;
+            if (Character.isUpperCase(c)) hasUpper = true;
+            if (!Character.isLetterOrDigit(c)) hasSpecial = true;
         }
-
-        if (!hasUpper) {
-            System.out.println(
-                    "Password must contain at least one uppercase letter");
-            check = false;
-        }
-
-        if (!hasSpecial) {
-            System.out.println(
-                    "Password must contain at least one special character");
-            check = false;
-        }
-
-        if (check)
-            System.out.println("Password is valid");
-
-        return check;
+        if (!hasUpper) throw new PasswordException("Password must contain at least one uppercase letter");
+        if (!hasSpecial) throw new PasswordException("Password must contain at least one special character");
     }
 
-    private static boolean checkPhoneNumber(String phN) {
-
-        boolean check = true;
+    private static void checkPhoneNumber(String phN) throws PhoneNumberException {
 
         if (phN == null) {
-            System.out.println("Phone number is null");
-            return false;
+            throw new PhoneNumberException("Phone number is null");
         }
 
         phN = phN.trim();
 
         if (phN.isEmpty()) {
-            System.out.println("Phone number is empty");
-            check = false;
+            throw new PhoneNumberException("Phone number is empty");
         }
 
         if (phN.contains(" ")) {
-            System.out.println("Phone number must not contain spaces");
-            check = false;
+            throw new PhoneNumberException("Phone number must not contain spaces");
         }
 
         if (phN.length() != 11) {
-            System.out.println("Phone number length must be 11");
-            check = false;
+            throw new PhoneNumberException("Phone number length must be 11");
         }
 
         boolean allDigits = true;
@@ -162,18 +109,24 @@ public class UserService {
         }
 
         if (!allDigits) {
-            System.out.println("Phone number must contain only digits");
-            check = false;
+            throw new PhoneNumberException("Phone number must contain only digits");
         }
 
         if (phN.indexOf("09") != 0) {
-            System.out.println("Phone number must start with 09");
-            check = false;
+            throw new PhoneNumberException("Phone number must start with 09");
         }
+    }
+}
 
-        if (check)
-            System.out.println("Phone number is valid");
 
-        return check;
+class PhoneNumberException extends Exception {
+    public PhoneNumberException(String message) {
+        super(message);
+    }
+}
+
+class PasswordException extends Exception {
+    public PasswordException(String message) {
+        super(message);
     }
 }

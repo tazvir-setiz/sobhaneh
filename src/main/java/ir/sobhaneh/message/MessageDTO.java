@@ -4,8 +4,9 @@
 package ir.sobhaneh.message;
 
 import ir.sobhaneh.user.UserDTO;
+
 public class MessageDTO {
-    private String message;
+    private final String message;
     UserDTO messageSender;
     UserDTO messageReceiver;
 
