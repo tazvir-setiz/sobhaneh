@@ -1,7 +1,7 @@
 //in the name of ALLAH
 //YA MAHDI
 
-package ir.sobhaneh.user;
+package ir.sobhan.sobhaneh.common.user;
 
 import java.util.Scanner;
 
@@ -18,7 +18,7 @@ public class UserService {
         return new UserDTO(user.getPhoneNumber(), password);
     }
 
-    public static UserDTO setPhoneNumber(UserDTO user) {
+    public static UserDTO   setPhoneNumber(UserDTO user) {
         String phoneNumber = getPhoneNumberFromInput("Enter new phone number for " + user.getPhoneNumber() + ":");
         return new UserDTO(phoneNumber, user.getPassword());
     }

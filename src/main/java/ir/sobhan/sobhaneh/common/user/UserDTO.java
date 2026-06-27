@@ -1,6 +1,6 @@
 //in the name of ALLAH
 //YA MAHDI
-package ir.sobhaneh.user;
+package ir.sobhan.sobhaneh.common.user;
 
 public class UserDTO {
 

@@ -1,9 +1,9 @@
 //in the name of ALLAH
 //YA MAHDI
 
-package ir.sobhaneh.message;
+package ir.sobhan.sobhaneh.common.message;
 
-import ir.sobhaneh.user.UserDTO;
+import ir.sobhan.sobhaneh.common.user.UserDTO;
 
 public class MessageDTO {
     private final String message;
