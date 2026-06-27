@@ -13,16 +13,6 @@ public class UserService {
         return new UserDTO(phN, password);
     }
 
-    public static UserDTO setPassword(UserDTO user) {
-        String password = getPasswordFromInput("Enter new password for " + user.getPhoneNumber() + ":");
-        return new UserDTO(user.getPhoneNumber(), password);
-    }
-
-    public static UserDTO   setPhoneNumber(UserDTO user) {
-        String phoneNumber = getPhoneNumberFromInput("Enter new phone number for " + user.getPhoneNumber() + ":");
-        return new UserDTO(phoneNumber, user.getPassword());
-    }
-
     private static String getPhoneNumberFromInput(String msg) {
         System.out.println(msg);
         Scanner input = new Scanner(System.in);

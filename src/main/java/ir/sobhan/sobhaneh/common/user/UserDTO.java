@@ -2,21 +2,24 @@
 //YA MAHDI
 package ir.sobhan.sobhaneh.common.user;
 
-public class UserDTO {
+import java.io.Serializable;
 
-    private final String phoneNumber_;
-    private final String password_;
+public class UserDTO implements Serializable {
 
+    private final String phoneNumber;
+    //private final transient String password;
+    private final long hashPassword;
     UserDTO(String phoneNumber, String password) {
-        phoneNumber_ = phoneNumber;
-        password_ = password;
+        this.phoneNumber = phoneNumber;
+        //this.password = password;
+        this.hashPassword = password.hashCode();
     }
 
     String getPhoneNumber() {
-        return phoneNumber_;
+        return phoneNumber;
     }
 
-    String getPassword() {
-        return password_;
+    long getHashPassword() {
+        return hashPassword;
     }
 }
