@@ -106,6 +106,11 @@ public class UserService {
             throw new PhoneNumberException("Phone number must start with 09");
         }
     }
+
+    public static UserDTO find(String reciverName) {
+        ///must edit
+        return new UserDTO("000", "000");
+    }
 }
 
 

@@ -5,11 +5,11 @@ import ir.sobhan.sobhaneh.common.user.UserDTO;
 import java.util.LinkedList;
 
 
-public class Chat {
+public class ChatDTO {
     private LinkedList<MessageDTO> messages;
     private final UserDTO sender;
     private final UserDTO receiver;
-    Chat(UserDTO sender, UserDTO receiver) {
+    ChatDTO(UserDTO sender, UserDTO receiver) {
         this.sender = sender;
         this.receiver = receiver;
     }
