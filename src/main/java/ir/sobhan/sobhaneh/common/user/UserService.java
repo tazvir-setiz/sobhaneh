@@ -40,7 +40,7 @@ public class UserService {
             try {
                 password = input.nextLine();
                 checkPassword(password);
-                System.out.println("Your phone number is valid!");
+                System.out.println("Your password is valid!");
                 break;
             } catch (PasswordException ex) {
                 System.out.println(ex.getMessage());
@@ -107,9 +107,14 @@ public class UserService {
         }
     }
 
-    public static UserDTO find(String reciverName) {
-        ///must edit
-        return new UserDTO("000", "000");
+    public static int find(String reciverName) {
+        try {
+            checkPhoneNumber(reciverName);
+        } catch (PhoneNumberException ex) {
+            throw new IllegalArgumentException("Receiver phone number is invalid: " + ex.getMessage(), ex);
+        }
+
+        return reciverName.trim().hashCode();
     }
 }
 

@@ -3,28 +3,26 @@
 
 package ir.sobhan.sobhaneh.common.message;
 
-import ir.sobhan.sobhaneh.common.user.UserDTO;
-
 public class MessageDTO {
     private final String message;
-    UserDTO messageSender;
-    UserDTO messageReceiver;
+    private final int senderId;
+    private final int receiverId;
 
-    public MessageDTO(String message, UserDTO messageSender, UserDTO messageReceiver) {
+    public MessageDTO(String message, int senderId, int receiverId) {
         this.message = message;
-        this.messageSender = messageSender;
-        this.messageReceiver = messageReceiver;
+        this.senderId = senderId;
+        this.receiverId = receiverId;
     }
 
     public String getMessage() {
         return message;
     }
 
-    public UserDTO getMessageSender() {
-        return messageSender;
+    public int getSenderId() {
+        return senderId;
     }
 
-    public UserDTO getMessageReceiver() {
-        return messageReceiver;
+    public int getReceiverId() {
+        return receiverId;
     }
 }

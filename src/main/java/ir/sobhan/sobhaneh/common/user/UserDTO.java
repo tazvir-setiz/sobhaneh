@@ -7,11 +7,9 @@ import java.io.Serializable;
 public class UserDTO implements Serializable {
 
     private final String phoneNumber;
-    //private final transient String password;
     private final long hashPassword;
     UserDTO(String phoneNumber, String password) {
         this.phoneNumber = phoneNumber;
-        //this.password = password;
         this.hashPassword = password.hashCode();
     }
 
