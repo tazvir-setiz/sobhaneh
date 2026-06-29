@@ -1,6 +1,6 @@
 package ir.sobhan.sobhaneh.host;
-import ir.sobhan.sobhaneh.host.workspace.Workspace;
 
+import ir.sobhan.sobhaneh.host.workspace.Workspace;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -26,6 +26,7 @@ public class Host {
 			out.format("%s\n", code).flush();
 			if (in.nextLine().equals("OK")) {
 				new Workspace(10465).start();
+				while (true) Thread.sleep(5000);
 			}
 		}
 	}

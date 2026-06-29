@@ -24,9 +24,9 @@ public class Workspace extends Thread {
                                 for (PrintWriter c : clients) c.println(msg);
                             }
                         }
-                    } catch (Exception e) { }
+                    } catch (Exception e) {}
                 }).start();
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {}
     }
 }

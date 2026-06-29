@@ -1,4 +1,5 @@
 package ir.sobhan.sobhaneh.server;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -26,12 +27,12 @@ class HostHandler extends Thread {
             int min = Integer.parseInt(req[2]);
             int max = Integer.parseInt(req[3]);
 
-            if (min < 10000) { out.format("ERROR Port must be >= 10000\n").flush(); return; }
-            if (max - min > 1000) { out.format("ERROR Max 1000 ports\n").flush(); return; }
+            if (min < 10000) { out.format("ERROR Port number must be at least 10000\n").flush(); return; }
+            if (max - min > 1000) { out.format("ERROR At most 1000 ports is allowed\n").flush(); return; }
 
             synchronized (CentralServer.usedRanges) {
                 for (int[] r : CentralServer.usedRanges) {
-                    if (min <= r[1] && max >= r[0]) { out.format("ERROR Port in use\n").flush(); return; }
+                    if (min <= r[1] && max >= r[0]) { out.format("ERROR Port in use by another host\n").flush(); return; }
                 }
             }
 
@@ -50,6 +51,6 @@ class HostHandler extends Thread {
                     out.format("OK\n").flush();
                 } else { out.format("ERROR Invalid code\n").flush(); }
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {}
     }
 }
