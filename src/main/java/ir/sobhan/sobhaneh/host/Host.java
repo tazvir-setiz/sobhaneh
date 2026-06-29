@@ -1,56 +1,32 @@
 package ir.sobhan.sobhaneh.host;
+import ir.sobhan.sobhaneh.host.workspace.Workspace;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 public class Host {
-	public static void register(String hostAddress, int startPort, int endPort) throws IOException {
-		try (Socket centralSocket = new Socket("127.0.0.1", 8000);
-			 BufferedReader centralReader = new BufferedReader(new InputStreamReader(centralSocket.getInputStream()));
-			 PrintWriter centralWriter = new PrintWriter(centralSocket.getOutputStream(), true)) {
+	public static void main(String[] args) throws Exception {
+		Socket s = new Socket("127.0.0.1", 8000);
+		Scanner in = new Scanner(s.getInputStream());
+		Formatter out = new Formatter(s.getOutputStream());
 
-			centralWriter.println("create-host " + hostAddress + " " + startPort + " " + endPort);
-			String response = centralReader.readLine();
-			if (response == null || !response.startsWith("OK ")) {
-				throw new IOException(response == null ? "ERROR No response from central server" : response);
-			}
+		out.format("create-host 127.0.0.1 10000 10999\n").flush();
+		String[] res = in.nextLine().split(" ");
 
-			int listenPort = Integer.parseInt(response.substring(3).trim());
-			try (ServerSocket hostSocket = new ServerSocket(listenPort, 1, InetAddress.getByName(hostAddress))) {
-				centralWriter.println("check");
-				try (Socket centralCheckSocket = hostSocket.accept();
-					 BufferedReader hostReader = new BufferedReader(new InputStreamReader(centralCheckSocket.getInputStream()));
-					 PrintWriter hostWriter = new PrintWriter(centralCheckSocket.getOutputStream(), true)) {
+		if (res[0].equals("OK")) {
+			int port = Integer.parseInt(res[1]);
+			ServerSocket ts = new ServerSocket(port);
+			out.format("check\n").flush();
 
-					String codeMessage = hostReader.readLine();
-					if (codeMessage == null || !codeMessage.startsWith("OK ")) {
-						throw new IOException("ERROR Invalid code message");
-					}
+			Socket side = ts.accept();
+			String code = new Scanner(side.getInputStream()).nextLine().split(" ")[1];
+			side.close(); ts.close();
 
-					hostWriter.println(codeMessage.substring(3).trim());
-				}
-			}
-
-			String finalResponse = centralReader.readLine();
-			if (!"OK".equals(finalResponse)) {
-				throw new IOException(finalResponse == null ? "ERROR No final response" : finalResponse);
+			out.format("%s\n", code).flush();
+			if (in.nextLine().equals("OK")) {
+				new Workspace(10465).start();
 			}
 		}
-	}
-
-	public static void main(String[] args) throws IOException {
-		if (args.length != 3) {
-			throw new IllegalArgumentException("Usage: Host <hostAddress> <startPort> <endPort>");
-		}
-
-		String hostAddress = args[0];
-		int startPort = Integer.parseInt(args[1]);
-		int endPort = Integer.parseInt(args[2]);
-		register(hostAddress, startPort, endPort);
 	}
 }
