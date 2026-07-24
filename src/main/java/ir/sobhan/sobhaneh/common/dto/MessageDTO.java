@@ -6,18 +6,16 @@ package ir.sobhan.sobhaneh.common.dto;
 public class MessageDTO {
 
     private int seq;
-    private int senderId;
-    private int receiverId;
-    private String type;
+    private String from;
+    private MessageType type;
     private String body;
 
     public MessageDTO() {
     }
 
-    public MessageDTO(int seq, int senderId, int receiverId, String type, String body) {
+    public MessageDTO(int seq, String from, MessageType type, String body) {
         this.seq = seq;
-        this.senderId = senderId;
-        this.receiverId = receiverId;
+        this.from = from;
         this.type = type;
         this.body = body;
     }
@@ -30,27 +28,19 @@ public class MessageDTO {
         this.seq = seq;
     }
 
-    public int getSenderId() {
-        return senderId;
+    public String getFrom() {
+        return from;
     }
 
-    public void setSenderId(int senderId) {
-        this.senderId = senderId;
+    public void setFrom(String from) {
+        this.from = from;
     }
 
-    public int getReceiverId() {
-        return receiverId;
-    }
-
-    public void setReceiverId(int receiverId) {
-        this.receiverId = receiverId;
-    }
-
-    public String getType() {
+    public MessageType getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public void setType(MessageType type) {
         this.type = type;
     }
 
