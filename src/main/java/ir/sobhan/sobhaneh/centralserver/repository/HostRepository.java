@@ -13,9 +13,7 @@ public class HostRepository {
     private HostRepository() {}
 
     private static boolean portConflict(int oStart, int oEnd, int nStart, int nEnd) {
-        if((nStart <= oEnd) && (nEnd >= oStart)) {
-            return true;
-        }
+        if((nStart <= oEnd) && (nEnd >= oStart)) return true;
         return false;
     }
 

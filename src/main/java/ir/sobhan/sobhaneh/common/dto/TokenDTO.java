@@ -1,6 +1,5 @@
 package ir.sobhan.sobhaneh.common.dto;
 
-import java.sql.Time;
 
 public class TokenDTO {
     private final String token;

@@ -4,9 +4,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 public class HostDTO {
-    private String ip;
-    private int startPort;
-    private int endPort;
+    private final String ip;
+    private final int startPort;
+    private final int endPort;
     private final HashSet<Integer> freePorts = new HashSet<>();
 
     public HostDTO(String ip, int startPort, int endPort) {
@@ -34,7 +34,7 @@ public class HostDTO {
         if (freePorts.isEmpty())
             return -1;
         Iterator<Integer> iterator = freePorts.iterator();
-        return iterator.next().intValue();
+        return iterator.next();
     }
 
     public boolean occupyPort(int port) {

@@ -5,7 +5,7 @@ package ir.sobhan.sobhaneh.common.response;
 
 public class Response {
 
-    private ResponseStatus status = null;
+    private ResponseStatus status;
     private ErrorType error = null;
     private Object data = null;
 
