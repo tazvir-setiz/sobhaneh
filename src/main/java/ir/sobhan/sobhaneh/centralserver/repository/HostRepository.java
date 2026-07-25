@@ -64,6 +64,16 @@ public class HostRepository {
         return null;
     }
 
+    public static HostDTO getFreeHost(){
+        for(String ip : hosts.keySet()){
+            ArrayList<HostDTO> hostsList = hosts.get(ip);
+            for(HostDTO host : hostsList){
+                if(host.getFreePort() != -1) return host;
+            }
+        }
+        return null;
+    }
+
     public static ArrayList<HostDTO> getHosts(String ip) {
         return hosts.get(ip);
     }
