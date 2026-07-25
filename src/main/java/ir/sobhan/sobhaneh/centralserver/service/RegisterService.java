@@ -44,6 +44,6 @@ public class RegisterService {
         UserDTO newUser = new UserDTO(UserRepository.getNextId(), phoneNumber, password);
 
         UserRepository.addUser(newUser);
-        return new Response(newUser);
+        return new Response(ResponseStatus.OK);
     }
 }
