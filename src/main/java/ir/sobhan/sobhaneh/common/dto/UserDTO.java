@@ -9,6 +9,8 @@ public class UserDTO {
     private String phoneNumber;
     private String password;
     private String username;
+    private boolean loggedIn = false;
+
 
     public UserDTO() {
     }
@@ -52,5 +54,13 @@ public class UserDTO {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public boolean isLoggedIn() {
+        return loggedIn;
+    }
+
+    public void setLoggedIn(boolean loggedIn) {
+        this.loggedIn = loggedIn;
     }
 }
