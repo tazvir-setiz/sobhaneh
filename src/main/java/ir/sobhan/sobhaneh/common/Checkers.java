@@ -40,4 +40,12 @@ public class Checkers {
         if(endPort - startPort + 1 > 1000) return new Response(ErrorType.AT_MOST_1000_PORTS_ALLOWED);
         return new Response(ResponseStatus.OK);
     }
+
+    public static Response checkWorkspaceName(String workspaceName) {
+        if(workspaceName == null) return new Response(ErrorType.INVALID_WORKSPACE_NAME);
+        for(char c : workspaceName.toCharArray()) {
+            if(!(Character.isLetterOrDigit(c) || Character.isDigit(c) || Character.isUpperCase(c))) return new Response(ErrorType.INVALID_WORKSPACE_NAME);
+        }
+        return new Response(ResponseStatus.OK);
+    }
 }
