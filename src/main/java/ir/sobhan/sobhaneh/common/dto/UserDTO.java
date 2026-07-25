@@ -13,6 +13,12 @@ public class UserDTO {
     public UserDTO() {
     }
 
+    public UserDTO(int id, String phoneNumber, String password) {
+        this.id = id;
+        this.phoneNumber = phoneNumber;
+        this.password = password;
+    }
+
     public UserDTO(int id, String phoneNumber, String password, String username) {
         this.id = id;
         this.phoneNumber = phoneNumber;

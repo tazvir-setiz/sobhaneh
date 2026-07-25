@@ -1,4 +1,4 @@
-package ir.sobhan.sobhaneh.centralserver;
+package ir.sobhan.sobhaneh.centralserver.service;
 
 import ir.sobhan.sobhaneh.centralserver.repository.UserRepository;
 import ir.sobhan.sobhaneh.common.dto.UserDTO;
