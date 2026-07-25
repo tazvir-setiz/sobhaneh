@@ -15,7 +15,9 @@ public class CreatHostService {
         response = Checkers.checkPortRange(startPort, endPort);
         if(response.getStatus() !=  ResponseStatus.OK) return response;
         HostDTO newHost = new HostDTO(ip, startPort, endPort);
-        if(!HostRepository.addHost(newHost)) return new Response(ErrorType.INVALID_PORT_RANGE);
+        if(!HostRepository.addHost(newHost)) return new Response(ErrorType.PORT_IN_USE_BY_ANOTHER_HOST);
+
+        int randomPort = newHost.getFreePort();
 
         return new Response(ResponseStatus.OK);
     }
