@@ -1,3 +1,6 @@
+//in the name of ALLAH
+//YA MAHDI
+
 package ir.sobhan.sobhaneh.centralserver.service;
 
 import ir.sobhan.sobhaneh.centralserver.repository.HostRepository;
@@ -10,8 +13,8 @@ import ir.sobhan.sobhaneh.common.response.Response;
 import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
 public class CreateWorkspaceService {
-    private CreateWorkspaceService() {}
-    public Response creatWorkspace(String workspaceName) {
+    public CreateWorkspaceService() {}
+    public Response createWorkspace(String workspaceName) {
         Response response = Checkers.checkWorkspaceName(workspaceName);
         if(response.getStatus() != ResponseStatus.OK) return response;
         if(WorkspaceRepository.findByName(workspaceName) != null) return new Response(ErrorType.WORKSPACE_ALREADY_EXISTS);
