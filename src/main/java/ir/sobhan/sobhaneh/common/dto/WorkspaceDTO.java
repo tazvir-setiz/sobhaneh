@@ -8,9 +8,7 @@ public class WorkspaceDTO {
     private String name;
     private String hostIp;
     private int port;
-    private int ownerId;
-    public WorkspaceDTO() {
-    }
+    private final int ownerId;
 
     public WorkspaceDTO(String name, String hostIp, int port,  int ownerId) {
         this.name = name;
