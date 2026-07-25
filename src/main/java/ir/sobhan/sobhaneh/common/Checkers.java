@@ -5,7 +5,9 @@ import ir.sobhan.sobhaneh.common.response.Response;
 import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
 public class Checkers {
-    private Checkers() {}
+    private Checkers() {
+    }
+
     public static Response checkPhoneNumber(String phN) {
         if (phN == null) return new Response(ErrorType.PHONE_NUMBER_INVALID);
         if (phN.length() != 11) return new Response(ErrorType.PHONE_NUMBER_INVALID);
@@ -24,6 +26,18 @@ public class Checkers {
         if (password.isBlank()) return new Response(ErrorType.PASSWORD_INVALID);
         if (password.length() < 6) return new Response(ErrorType.PASSWORD_INVALID);
 
+        return new Response(ResponseStatus.OK);
+    }
+
+    public static Response checkIp(String ip) {
+        //باید درستش کنم یکم سخته
+        return new Response(ResponseStatus.OK);
+    }
+
+    public static Response checkPortRange(int startPort, int endPort) {
+        if(startPort >= endPort) return new Response(ErrorType.INVALID_PORT_RANGE);
+        if(startPort < 10000) return new Response(ErrorType.PORT_NUMBER_MUST_BE_AT_LEAST_10000);
+        if(endPort - startPort + 1 > 1000) return new Response(ErrorType.AT_MOST_1000_PORTS_ALLOWED);
         return new Response(ResponseStatus.OK);
     }
 }
