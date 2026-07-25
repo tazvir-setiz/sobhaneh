@@ -7,8 +7,8 @@ import ir.sobhan.sobhaneh.common.response.ErrorType;
 import ir.sobhan.sobhaneh.common.response.Response;
 import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
-public class LoginSevice {
-    public LoginSevice() {}
+public class LoginService {
+    public LoginService() {}
 
     public Response login(String phoneNumber, String password) {
         Response response = Checkers.checkPhoneNumber(phoneNumber);
