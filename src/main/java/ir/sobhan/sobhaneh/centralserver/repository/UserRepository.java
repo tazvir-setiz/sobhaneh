@@ -8,9 +8,14 @@ import ir.sobhan.sobhaneh.common.dto.UserDTO;
 import java.util.HashMap;
 
 public class UserRepository {
+    private static int nextId = 1;
     private static final HashMap<Integer, UserDTO> users = new HashMap<>();
 
     private UserRepository() {}
+
+    public static int getNextId() {
+        return nextId++;
+    }
 
     public static boolean addUser(UserDTO user) {
         if (users.containsKey(user.getId())) {
