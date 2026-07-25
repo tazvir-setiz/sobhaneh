@@ -1,6 +1,7 @@
 package ir.sobhan.sobhaneh.centralserver.service;
 
 import ir.sobhan.sobhaneh.centralserver.repository.UserRepository;
+import ir.sobhan.sobhaneh.common.Checkers;
 import ir.sobhan.sobhaneh.common.dto.UserDTO;
 import ir.sobhan.sobhaneh.common.response.ErrorType;
 import ir.sobhan.sobhaneh.common.response.Response;
@@ -12,10 +13,10 @@ public class RegisterService {
     }
 
     public Response register(String phoneNumber, String password) {
-        Response response = checkPhoneNumber(phoneNumber);
+        Response response = Checkers.checkPhoneNumber(phoneNumber);
         if (response.getStatus() != ResponseStatus.OK) return response;
 
-        response = checkPassword(password);
+        response = Checkers.checkPassword(password);
         if (response.getStatus() != ResponseStatus.OK) return response;
 
         if (UserRepository.findByPhone(phoneNumber) != null) return new Response(ErrorType.USER_ALREADY_EXISTS);

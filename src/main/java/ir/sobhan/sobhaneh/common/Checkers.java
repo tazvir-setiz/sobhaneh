@@ -6,7 +6,7 @@ import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
 public class Checkers {
     private Checkers() {}
-    private static Response checkPhoneNumber(String phN) {
+    public static Response checkPhoneNumber(String phN) {
         if (phN == null) return new Response(ErrorType.PHONE_NUMBER_INVALID);
         if (phN.length() != 11) return new Response(ErrorType.PHONE_NUMBER_INVALID);
         if (phN.startsWith("09") == false) return new Response(ErrorType.PHONE_NUMBER_INVALID);
@@ -19,7 +19,7 @@ public class Checkers {
         return new Response(ResponseStatus.OK);
     }
 
-    private static Response checkPassword(String password) {
+    public static Response checkPassword(String password) {
         if (password == null) return new Response(ErrorType.PASSWORD_INVALID);
         if (password.isBlank()) return new Response(ErrorType.PASSWORD_INVALID);
         if (password.length() < 6) return new Response(ErrorType.PASSWORD_INVALID);
