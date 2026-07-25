@@ -14,7 +14,7 @@ import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
 public class CreateWorkspaceService {
     public CreateWorkspaceService() {}
-    public Response createWorkspace(String workspaceName) {
+    public Response createWorkspace(int ownerId, String workspaceName) {
         Response response = Checkers.checkWorkspaceName(workspaceName);
         if(response.getStatus() != ResponseStatus.OK) return response;
         if(WorkspaceRepository.findByName(workspaceName) != null) return new Response(ErrorType.WORKSPACE_ALREADY_EXISTS);
@@ -22,8 +22,11 @@ public class CreateWorkspaceService {
         if(host == null) return new Response(ErrorType.NO_FREE_HOST);
         int freePort = host.getFreePort();
         host.occupyPort(freePort);
-        WorkspaceDTO  workspace = new WorkspaceDTO(workspaceName, host.getIp(), freePort);
-        WorkspaceRepository.addWorkspace(workspace);
-        return new  Response(ResponseStatus.OK);
+        WorkspaceDTO newWorkspace = new WorkspaceDTO(workspaceName, host.getIp(), freePort, ownerId);
+        if(!WorkspaceRepository.addWorkspace(newWorkspace)){
+            host.releasePort(freePort);
+            return new Response(ErrorType.WORKSPACE_ALREADY_EXISTS);
+        }
+        return new  Response(newWorkspace);
     }
 }

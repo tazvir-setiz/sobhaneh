@@ -8,14 +8,15 @@ public class WorkspaceDTO {
     private String name;
     private String hostIp;
     private int port;
-
+    private int ownerId;
     public WorkspaceDTO() {
     }
 
-    public WorkspaceDTO(String name, String hostIp, int port) {
+    public WorkspaceDTO(String name, String hostIp, int port,  int ownerId) {
         this.name = name;
         this.hostIp = hostIp;
         this.port = port;
+        this.ownerId = ownerId;
     }
 
     public String getName() {
@@ -40,5 +41,9 @@ public class WorkspaceDTO {
 
     public void setPort(int port) {
         this.port = port;
+    }
+
+    public int getOwnerId() {
+        return ownerId;
     }
 }
