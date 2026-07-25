@@ -9,7 +9,7 @@ public class Checkers {
     public static Response checkPhoneNumber(String phN) {
         if (phN == null) return new Response(ErrorType.PHONE_NUMBER_INVALID);
         if (phN.length() != 11) return new Response(ErrorType.PHONE_NUMBER_INVALID);
-        if (phN.startsWith("09") == false) return new Response(ErrorType.PHONE_NUMBER_INVALID);
+        if (!phN.startsWith("09")) return new Response(ErrorType.PHONE_NUMBER_INVALID);
         for (int i = 0; i < phN.length(); i++) {
             if (!Character.isDigit(phN.charAt(i))) {
                 return new Response(ErrorType.PHONE_NUMBER_INVALID);
