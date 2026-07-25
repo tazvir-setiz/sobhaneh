@@ -54,6 +54,9 @@ public class HostRepository {
         return false;
     }
     public static HostDTO findHost(String ip, int startPort, int endPort) {
+        if(hosts.get(ip) == null) {
+            return null;
+        }
         ArrayList<HostDTO> list = hosts.get(ip);
         for (HostDTO oldHost : list) {
             if (oldHost.getStartPort() == startPort && oldHost.getEndPort() == endPort) {
