@@ -1,15 +1,13 @@
 //in the name of ALLAH
 //YA MAHDI
 
-package ir.sobhan.sobhaneh.common;
-
-import ir.sobhan.sobhaneh.common.response.ResponseStatus;
+package ir.sobhan.sobhaneh.common.response;
 
 public class Response {
 
-    private ResponseStatus status;
-    private ErrorType error;
-    private Object data;
+    private ResponseStatus status = null;
+    private ErrorType error = null;
+    private Object data = null;
 
     public Response(ResponseStatus status) {
         this.status = status;

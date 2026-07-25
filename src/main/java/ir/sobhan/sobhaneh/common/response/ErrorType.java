@@ -1,10 +1,12 @@
-package ir.sobhan.sobhaneh.common;
+package ir.sobhan.sobhaneh.common.response;
 
 
 public enum ErrorType {
 
     UNKNOWN_ERROR,
 
+    PHONE_NUMBER_INVALID,
+    PASSWORD_INVALID,
     USER_ALREADY_EXISTS,
     USER_NOT_FOUND,
     INVALID_PHONE_OR_PASSWORD,

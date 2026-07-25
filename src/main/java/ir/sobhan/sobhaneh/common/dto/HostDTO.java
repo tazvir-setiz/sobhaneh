@@ -7,14 +7,14 @@ public class HostDTO {
     private String ip;
     private int startPort;
     private int endPort;
-    private final HashSet<Integer> unusedPorts = new HashSet<>();
+    private final HashSet<Integer> freePorts = new HashSet<>();
 
     public HostDTO(String ip, int startPort, int endPort) {
         this.ip = ip;
         this.startPort = startPort;
         this.endPort = endPort;
         for (int i = startPort; i <= endPort; i++) {
-            unusedPorts.add(i);
+            freePorts.add(i);
         }
     }
 
@@ -31,24 +31,26 @@ public class HostDTO {
     }
 
     public int getFreePort() {
-        if(unusedPorts.isEmpty())
+        if (freePorts.isEmpty())
             return -1;
-        Iterator<Integer> iterator = unusedPorts.iterator();
+        Iterator<Integer> iterator = freePorts.iterator();
         return iterator.next().intValue();
     }
+
     public boolean occupyPort(int port) {
-        if (unusedPorts.contains(port)) {
-            unusedPorts.remove(port);
+        if (freePorts.contains(port)) {
+            freePorts.remove(port);
             return true;
         }
         return false;
     }
+
     public boolean releasePort(int port) {
-        if(port >= startPort && port <= endPort) return false;
-        if (unusedPorts.contains(port)) {
+        if (!(port >= startPort && port <= endPort)) return false;
+        if (freePorts.contains(port)) {
             return false;
         }
-        unusedPorts.add(port);
+        freePorts.add(port);
         return true;
     }
 }
