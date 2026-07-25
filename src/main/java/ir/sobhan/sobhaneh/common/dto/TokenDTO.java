@@ -1,6 +1,8 @@
 package ir.sobhan.sobhaneh.common.dto;
 
 
+import ir.sobhan.sobhaneh.centralserver.repository.TokenRepository;
+
 public class TokenDTO {
     private final String token;
     private final int userId;
@@ -12,6 +14,14 @@ public class TokenDTO {
         this.userId = userId;
         this.workspaceName = workspaceName;
         this.expTime = System.currentTimeMillis() + 5 * 60 * 1000;
+    }
+
+    public boolean isExpired() {
+        if(System.currentTimeMillis() > expTime) {
+            TokenRepository.removeExpiredTokens();
+            return true;
+        }
+        return false;
     }
 
     public String getToken() {
