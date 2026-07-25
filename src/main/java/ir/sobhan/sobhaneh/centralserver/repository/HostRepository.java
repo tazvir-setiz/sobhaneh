@@ -1,0 +1,74 @@
+//in the name of ALLAH
+//YA MAHDI
+
+package ir.sobhan.sobhaneh.centralserver.repository;
+
+import ir.sobhan.sobhaneh.common.dto.HostDTO;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class HostRepository {
+    private static final HashMap<String, ArrayList<HostDTO>> hosts = new HashMap<>();
+    private HostRepository() {}
+
+    private static boolean portConflict(int oStart, int oEnd, int nStart, int nEnd) {
+        if(nStart <= oEnd && nEnd >= oStart) {
+            return true;
+        }
+        return false;
+    };
+
+    public static boolean addHost(HostDTO host) {
+        if (host == null) {
+            return false;
+        }
+        if(!hosts.containsKey(host.getIp())){
+            hosts.put(host.getIp(), new ArrayList<>());
+        }
+        ArrayList<HostDTO> list = hosts.get(host.getIp());
+        for (HostDTO oldHost : list) {
+            if(portConflict(oldHost.getStartPort(), oldHost.getEndPort(), host.getStartPort(), host.getEndPort())) {
+                return false;
+            }
+        }
+        list.add(host);
+        return true;
+    }
+
+    public static boolean removeHost(String ip, int startPort, int endPort) {
+        ArrayList<HostDTO> list = hosts.get(ip);
+        if (list == null) {
+            return false;
+        }
+        for (int i = 0; i < list.size(); i++) {
+            HostDTO oldHost = list.get(i);
+            if (oldHost.getStartPort() == startPort && oldHost.getEndPort() == endPort) {
+                list.remove(oldHost);
+                if(list.isEmpty()) {
+                    hosts.remove(ip);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    public static HostDTO findHost(String ip, int startPort, int endPort) {
+        ArrayList<HostDTO> list = hosts.get(ip);
+        for (HostDTO oldHost : list) {
+            if (oldHost.getStartPort() == startPort && oldHost.getEndPort() == endPort) {
+                return oldHost;
+            }
+        }
+        return null;
+    }
+
+    public static ArrayList<HostDTO> getHosts(String ip) {
+        return hosts.get(ip);
+    }
+
+    public static HashMap<String, ArrayList<HostDTO>> getAllHosts() {
+        return hosts;
+    }
+}
+
