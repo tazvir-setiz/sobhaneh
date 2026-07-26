@@ -12,8 +12,8 @@ import ir.sobhan.sobhaneh.common.response.ErrorType;
 import ir.sobhan.sobhaneh.common.response.Response;
 import ir.sobhan.sobhaneh.common.response.ResponseStatus;
 
-public class WhoisService {
-    public WhoisService() {}
+public class WhoIsService {
+    public WhoIsService() {}
     public Response whois(String token){
         TokenRepository.removeExpiredTokens();
         Response response = Checkers.checkToken(token);
