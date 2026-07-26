@@ -39,6 +39,7 @@ public class ConnectWorkspaceService {
         if(!user.isLoggedIn()) return new Response(ErrorType.USER_NOT_LOGGED_IN);
         TokenDTO newToken = new TokenDTO(generateToken(), userId,  workspaceName);
         TokenRepository.addToken(newToken);
-        return new Response(newToken);
+        String protocolLine = workspace.getHostIp() + " " + workspace.getPort() + " " + newToken.getToken();
+        return new Response(protocolLine);
     }
 }
