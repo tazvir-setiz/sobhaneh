@@ -34,4 +34,8 @@ public class Response {
     public Object getData() {
         return data;
     }
+
+    public String toString() {
+        return "Response{" + "status=" + status + ", error=" + error + ", data=" + data + '}';
+    }
 }
