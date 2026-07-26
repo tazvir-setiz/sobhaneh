@@ -7,7 +7,8 @@ import java.util.Arrays;
 
 public class CommandParser {
     private CommandParser(){}
-    public static Command parse(String line) {
+    public static Command parse(String line){
+        if(line == null || line.isBlank()) return new Command(CommandType.UNKNOWN, new String[0]);
         String[] args = line.split(" ");
         CommandType type;
         switch (args[0]) {
