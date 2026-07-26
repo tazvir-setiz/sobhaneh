@@ -3,10 +3,6 @@
 
 package ir.sobhan.sobhaneh.common.response;
 
-import ir.sobhan.sobhaneh.centralserver.service.LoginService;
-import ir.sobhan.sobhaneh.centralserver.service.RegisterService;
-import ir.sobhan.sobhaneh.common.dto.HostDTO;
-
 public class Response {
 
     private ResponseStatus status;
@@ -40,13 +36,10 @@ public class Response {
     }
 
     public String toString() {
-        if(status == ResponseStatus.ERROR) return ""+status + error;
-        if(data instanceof RegisterService) return "OK";
-        if(data instanceof LoginService) return "OK";
-        if(data instanceof HostDTO) {
-            HostDTO host = (HostDTO)data;
-            return "" + status + host.getFreePort();
-        }
-        return ""+status;
+        if(status == ResponseStatus.ERROR) return status + " " + error;
+        if(data == null) return "OK";
+        if(data instanceof String) return "OK " + data;
+        if(data instanceof ProtocolFormattable) return "OK " +  ((ProtocolFormattable)data).toProtocolString();
+        return "OK";
     }
 }

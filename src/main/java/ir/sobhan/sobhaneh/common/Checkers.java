@@ -52,7 +52,7 @@ public class Checkers {
     public static Response checkToken(String token) {
         if(token == null) return new Response(ErrorType.INVALID_TOKEN);
         for(char c : token.toCharArray()) {
-            if(!(Character.isLetterOrDigit(c) || Character.isDigit(c))) return new Response(ErrorType.INVALID_WORKSPACE_NAME);
+            if(!(Character.isLetterOrDigit(c) || Character.isDigit(c))) return new Response(ErrorType.INVALID_TOKEN);
         }
         return new Response(ResponseStatus.OK);
     }

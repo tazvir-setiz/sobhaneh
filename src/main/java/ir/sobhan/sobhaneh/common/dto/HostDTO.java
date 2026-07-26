@@ -1,9 +1,14 @@
+//in the name of ALLAH
+//YA MAHDI
+
 package ir.sobhan.sobhaneh.common.dto;
+
+import ir.sobhan.sobhaneh.common.response.ProtocolFormattable;
 
 import java.util.HashSet;
 import java.util.Iterator;
 
-public class HostDTO {
+public class HostDTO implements ProtocolFormattable {
     private final String ip;
     private final int startPort;
     private final int endPort;
@@ -52,5 +57,10 @@ public class HostDTO {
         }
         freePorts.add(port);
         return true;
+    }
+
+    @Override
+    public String toProtocolString() {
+        return String.valueOf(getFreePort());
     }
 }

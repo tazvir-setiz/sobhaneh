@@ -3,7 +3,9 @@
 
 package ir.sobhan.sobhaneh.common.dto;
 
-public class WorkspaceDTO {
+import ir.sobhan.sobhaneh.common.response.ProtocolFormattable;
+
+public class WorkspaceDTO implements ProtocolFormattable {
 
     private String name;
     private String hostIp;
@@ -43,5 +45,10 @@ public class WorkspaceDTO {
 
     public int getOwnerId() {
         return ownerId;
+    }
+
+    @Override
+    public String toProtocolString() {
+        return getHostIp() + " " + getPort();
     }
 }

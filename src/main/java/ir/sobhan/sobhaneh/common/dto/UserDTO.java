@@ -3,7 +3,9 @@
 
 package ir.sobhan.sobhaneh.common.dto;
 
-public class UserDTO {
+import ir.sobhan.sobhaneh.common.response.ProtocolFormattable;
+
+public class UserDTO implements ProtocolFormattable {
 
     private int id;
     private String phoneNumber;
@@ -62,5 +64,10 @@ public class UserDTO {
 
     public void setLoggedIn(boolean loggedIn) {
         this.loggedIn = loggedIn;
+    }
+
+    @Override
+    public String toProtocolString() {
+        return String.valueOf(getId());
     }
 }
