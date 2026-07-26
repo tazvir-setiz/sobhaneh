@@ -15,24 +15,29 @@ public class HostRepository {
     private HostRepository() {
     }
 
-    private static boolean portConflict(int oStart, int oEnd, int nStart, int nEnd) {
-        return (nStart <= oEnd) && (nEnd >= oStart);
-    }
-
-    public static boolean addHost(HostDTO host) {
-        if (host == null) {
-            return false;
-        }
-        if (!hosts.containsKey(host.getIp())) {
-            hosts.put(host.getIp(), new ArrayList<>());
-        }
-        ArrayList<HostDTO> list = hosts.get(host.getIp());
+    public static boolean hasConflict(String ip, int nStart, int nEnd) {
+        ArrayList<HostDTO> list = hosts.get(ip);
+        if (list == null) return false;
         for (HostDTO oldHost : list) {
-            if (portConflict(oldHost.getStartPort(), oldHost.getEndPort(), host.getStartPort(), host.getEndPort())) {
-                return false;
+            int oStart = oldHost.getStartPort();
+            int oEnd = oldHost.getEndPort();
+            if ((nStart <= oEnd) && (nEnd >= oStart)) {
+                return true;
             }
         }
-        list.add(host);
+        return false;
+    }
+
+    public static boolean addHost(HostDTO newHost) {
+        if (newHost == null) {
+            return false;
+        }
+        if (!hosts.containsKey(newHost.getIp())) {
+            hosts.put(newHost.getIp(), new ArrayList<>());
+        }
+        if(hasConflict(newHost.getIp(), newHost.getStartPort(), newHost.getEndPort())) return false;
+        ArrayList<HostDTO> list = hosts.get(newHost.getIp());
+        list.add(newHost);
         return true;
     }
 
