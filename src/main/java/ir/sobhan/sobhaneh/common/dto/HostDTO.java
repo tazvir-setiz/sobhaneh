@@ -14,6 +14,16 @@ public class HostDTO implements ProtocolFormattable {
     private final int endPort;
     private final HashSet<Integer> freePorts = new HashSet<>();
 
+    public int getReservedPortCheck() {
+        return reservedPortCheck;
+    }
+
+    public void setReservedPortCheck(int reservedPortCheck) {
+        this.reservedPortCheck = reservedPortCheck;
+    }
+
+    private int reservedPortCheck;
+
     public HostDTO(String ip, int startPort, int endPort) {
         this.ip = ip;
         this.startPort = startPort;
@@ -57,6 +67,13 @@ public class HostDTO implements ProtocolFormattable {
         }
         freePorts.add(port);
         return true;
+    }
+
+    public synchronized int reserveFreePort() {
+        if (freePorts.isEmpty()) return -1;
+        int port = getFreePort();
+        occupyPort(port);
+        return port;
     }
 
     @Override
