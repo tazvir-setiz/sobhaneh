@@ -20,6 +20,6 @@ public class LoginService {
         if(user == null) return new Response(ErrorType.USER_NOT_FOUND);
         if(!(user.getPassword().equals(password))) return new Response(ErrorType.WRONG_PASSWORD);
         user.setLoggedIn(true);
-        return new Response(ResponseStatus.OK);
+        return new Response(new LoginService());
     }
 }

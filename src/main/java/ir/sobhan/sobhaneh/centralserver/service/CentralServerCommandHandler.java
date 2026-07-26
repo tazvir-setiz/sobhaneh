@@ -26,9 +26,9 @@ public class CentralServerCommandHandler {
             case CREATE_HOST:
                 return createHostService.createHost(command.getArgs()[0], Integer.parseInt(command.getArgs()[1]), Integer.parseInt(command.getArgs()[2]));
             case CREATE_WORKSPACE:
-                return createWorkspaceService.createWorkspace(id, command.getArgs()[0]);
+                return createWorkspaceService.createWorkspace(0/*should be change*/, command.getArgs()[0]);
             case CONNECT_WORKSPACE:
-                return connectWorkspaceService.connectWorkspace(id, command.getArgs()[0]);
+                return connectWorkspaceService.connectWorkspace(0/*should be change*/, command.getArgs()[0]);
             default:
                 return new Response(ErrorType.UNKNOWN_ERROR);
         }
