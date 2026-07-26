@@ -4,12 +4,11 @@
 package ir.sobhan.sobhaneh.centralserver;
 
 import ir.sobhan.sobhaneh.centralserver.service.CentralServerCommandHandler;
+import ir.sobhan.sobhaneh.common.network.Session;
 import ir.sobhan.sobhaneh.common.response.Response;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Formatter;
-import java.util.Scanner;
 
 public class ClientHandler extends Thread{
     private final Socket socket;
@@ -19,23 +18,15 @@ public class ClientHandler extends Thread{
     @Override
     public void run() {
         CentralServerCommandHandler centralServerCommandHandler = new CentralServerCommandHandler();
-        try (Scanner in = new Scanner(socket.getInputStream());
-             Formatter out = new Formatter(socket.getOutputStream())) {
-            while (in.hasNextLine()) {
-                String line = in.nextLine();
+        try (Session session = new Session(socket)) {
+            while (session.hasNextLine()) {
+                String line = session.readLine();
                 Response response = centralServerCommandHandler.handleCommand(line);
-                out.format("%s%n", response);
-                out.flush();
+                session.sendLine(response.toString());
             }
 
         } catch (IOException e) {
             e.printStackTrace();
-        } finally{
-            try {
-                socket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
 
     }
