@@ -27,6 +27,9 @@ public class CommandParser {
             case "connect-workspace":
                 type = CommandType.CONNECT_WORKSPACE;
                 break;
+            case "check":
+                type = CommandType.CHECK;
+                break;
             default:
                 type = CommandType.UNKNOWN;
                 break;
