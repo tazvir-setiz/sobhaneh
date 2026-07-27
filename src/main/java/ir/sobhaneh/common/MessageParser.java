@@ -4,6 +4,7 @@
 package ir.sobhaneh.common;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class MessageParser {
 
         line = line.trim();
         if (line.isEmpty()) {
-            return new ParsedMessage("", Collections.emptyList(), null);
+            return new ParsedMessage("", null, null);
         }
 
         int jsonStart = line.indexOf('{');
@@ -32,12 +33,11 @@ public class MessageParser {
         String[] tokens = head.isEmpty() ? new String[0] : head.split("\\s+");
 
         String command = tokens.length > 0 ? tokens[0] : "";
-        List<String> args = new ArrayList<>();
-        for (int i = 1; i < tokens.length; i++) {
-            args.add(tokens[i]);
-        }
+        if(tokens.length > 1) {
+            tokens = Arrays.copyOfRange(tokens, 1, tokens.length);
+        }else tokens = new  String[0];
 
-        return new ParsedMessage(command, args, json);
+        return new ParsedMessage(command, tokens, json);
     }
 
     public static String build(String command, String... args) {
@@ -48,7 +48,7 @@ public class MessageParser {
         return sb.toString();
     }
 
-    public static String build(String command, List<String> args, String json) {
+    public static String build(String command, String[] args, String json) {
         StringBuilder sb = new StringBuilder(command);
         for (String arg : args) {
             sb.append(' ').append(arg);

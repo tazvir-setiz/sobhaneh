@@ -8,10 +8,10 @@ import java.util.List;
 public class ParsedMessage {
 
     private final String command;
-    private final List<String> args;
+    private final String[] args;
     private final String json;
 
-    public ParsedMessage(String command, List<String> args, String json) {
+    public ParsedMessage(String command, String[] args, String json) {
         this.command = command;
         this.args = args;
         this.json = json;
@@ -21,7 +21,7 @@ public class ParsedMessage {
         return command;
     }
 
-    public List<String> getArgs() {
+    public String[] getArgs() {
         return args;
     }
 
@@ -34,10 +34,10 @@ public class ParsedMessage {
     }
 
     public String getArg(int index) {
-        if (index < 0 || index >= args.size()) {
+        if (index < 0 || index >= args.length) {
             return null;
         }
-        return args.get(index);
+        return args[index];
     }
 
     @Override
