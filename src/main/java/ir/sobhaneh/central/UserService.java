@@ -14,6 +14,8 @@ public class UserService {
         if(!checkPhoneNumber(phoneNumber)) return RegisterResult.INVALID_PHONE_FORMAT;
         if(users.containsKey(phoneNumber)) return RegisterResult.PHONE_ALREADY_EXISTS;
         if(!checkPassword(password)) return RegisterResult.INVALID_PASSWORD_FORMAT;
+        User newUser = new User(counter.incrementAndGet(), phoneNumber, password);
+        users.put(phoneNumber, newUser);
         return RegisterResult.OK;
     }
 
