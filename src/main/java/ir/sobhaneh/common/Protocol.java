@@ -11,6 +11,7 @@ public final class Protocol {
     public static final String REGISTER = "register";
     public static final String LOGIN = "login";
     public static final String CHECK = "check";
+    public static final String CREATE_HOST = "create-host";
     public static final String CREATE_WORKSPACE = "create-workspace";
     public static final String CONNECT_WORKSPACE = "connect-workspace";
     public static final String CONNECT = "connect";
