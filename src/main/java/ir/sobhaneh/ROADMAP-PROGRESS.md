@@ -1,66 +1,66 @@
 # راهنمای کامل پیاده‌سازی پیام‌رسان — نسخهٔ به‌روزشده
 ### مخصوص تازه‌کار جاوا — هر مرحله دقیقاً بگو چیکار کنم
 
-> این فایل جایگزین roadmap قبلی است. طبق سند اصلی پروژه (فایل PDF) و کدهایی که تا
-> الان با هم نوشتیم دوباره چک و تکمیل شده. هرجا "✅ انجام شده" نوشته، یعنی کدش را
-> از قبل داریم. هرجا "🔲 باید بنویسیم" نوشته، مرحلهٔ بعدی کار شماست.
+> این فایل جایگزین roadmap قبلی است. طبق سند اصلی پروژه و ساختار نهایی پوشه‌ها
+> بازنویسی شده. هرجا "✅ انجام شده" نوشته، یعنی از قبل داریم. هرجا "🔲 باید بنویسیم"
+> نوشته، مرحلهٔ بعدی کار شماست.
 
 ---
 
-## ۰. ساختار فعلی پروژه (همینی که تا الان ساختیم)
+## ۰. ساختار نهایی پروژه
 
 ```
 messenger-project/
-├── common/                              # کد مشترک بین central و host
-│   └── ir/sobhaneh/common/
-│       └── Connection.java              ✅ (خواندن/نوشتن خط روی سوکت)
+├── central-server/                          # پروژه سرور مرکزی
+│   ├── src/main/java/ir/sobhaneh/central/
+│   │   ├── CentralServer.java               ✅ نقطه شروع (main)
+│   │   ├── ClientHandler.java               ✅ هندلر هر اتصال کلاینت/میزبان
+│   │   ├── HostManager.java                 ✅ مدیریت میزبان‌ها
+│   │   ├── HostRegistrationSession.java     ✅ منطق create-host / check
+│   │   ├── VerificationService.java         ✅ تولید/ارسال کد تأیید
+│   │   ├── ReservationResult.java           ✅ نتیجهٔ رزرو پورت
+│   │   ├── UserManager.java                 🔲 مدیریت کاربران
+│   │   ├── WorkspaceManager.java            🔲 مدیریت فضای‌کارها
+│   │   ├── TokenManager.java                🔲 مدیریت توکن‌های موقت
+│   │   ├── models/
+│   │   │   ├── HostInfo.java                ✅
+│   │   │   ├── User.java                    🔲
+│   │   │   ├── WorkspaceInfo.java           🔲
+│   │   │   └── Token.java                   🔲
+│   │   └── persistence/
+│   │       └── DataStore.java               🔲 ذخیره/بارگیری (فاز ۲)
+│   └── data/
+│       └── central.dat                      🔲 فایل ذخیره‌شده
 │
-├── central/                             # سرور مرکزی
-│   └── ir/sobhaneh/central/
-│       ├── CentralServer.java           ✅ (main، گوش‌دادن روی پورت 8000)
-│       ├── ClientHandler.java           ✅ (خواندن خط، ارجاع دستور)
-│       ├── HostRegistrationSession.java ✅ (منطق create-host / check)
-│       ├── VerificationService.java     ✅ (تولید/ارسال کد تأیید)
-│       ├── HostManager.java             ✅ (اعتبارسنجی + رزرو اتمیک پورت)
-│       ├── ReservationResult.java       ✅ (نتیجهٔ رزرو: موفق/ناموفق)
-│       └── models/
-│           └── HostInfo.java            ✅ (اطلاعات یک میزبان ثبت‌شده)
+├── host/                                    # پروژه میزبان
+│   ├── src/main/java/ir/sobhaneh/host/
+│   │   ├── HostMain.java                    ✅ نقطه شروع
+│   │   ├── HostRegistration.java            ✅ ثبت‌نام میزبان در مرکزی
+│   │   ├── HostConfig.java                  ✅ تنظیمات ip/بازهٔ پورت
+│   │   ├── WorkspaceManager.java            🔲 مدیریت فضای‌کارهای این میزبان
+│   │   ├── Workspace.java                   🔲 کلاس فضای کار
+│   │   ├── ClientConnection.java            🔲 هندلر هر کلاینت متصل
+│   │   ├── models/
+│   │   │   ├── Message.java                 🔲
+│   │   │   ├── Chat.java                    🔲
+│   │   │   └── UserSession.java             🔲
+│   │   └── persistence/
+│   │       └── HostDataStore.java           🔲 ذخیره پیام‌ها و کاربران
+│   └── data/
+│       └── host-<ip>-<startPort>.dat        🔲
 │
-└── host/                                # برنامهٔ میزبان
-    └── ir/sobhaneh/host/
-        ├── HostMain.java                ✅ (main)
-        ├── HostRegistration.java        ✅ (اجرای پروتکل ثبت‌نام)
-        └── HostConfig.java              ✅ (تنظیمات ip/بازهٔ پورت این میزبان)
+├── client/                                  # پروژه کلاینت
+│   └── src/main/java/ir/sobhaneh/client/
+│       ├── ClientMain.java                  🔲 نقطه شروع + حلقه دستورات
+│       ├── CentralConnection.java           🔲 اتصال موقت به مرکزی
+│       ├── WorkspaceConnection.java         🔲 اتصال پایدار به فضای کار
+│       ├── CommandParser.java               🔲 پارس دستورات کاربر
+│       └── models/                          🔲 (در صورت نیاز)
+│
+└── common/                                  # (اختیاری) کد مشترک
+    └── src/main/java/ir/sobhaneh/common/
+        └── Connection.java                  ✅ خواندن/نوشتن خط روی سوکت
 ```
-
-**چیزی که هنوز نداریم:** پوشهٔ `client/` و بخش‌های `UserManager`, `WorkspaceManager`,
-`TokenManager` در سمت central، و `Workspace` در سمت host. این‌ها را در ادامهٔ همین
-فایل قدم‌به‌قدم می‌سازیم.
-
----
-
-## ⚠️ یک اصلاح مهم قبل از ادامه
-
-طبق سند اصلی پروژه، وقتی کد تأیید اشتباه باشد، سرور مرکزی باید دقیقاً این خطا را
-بدهد:
-```
-ERROR Invalid code
-```
-ولی در کد فعلی ما پیام `"ERROR Verification code mismatch"` نوشته شده. چون سند
-تأکید کرده *"پروتکل را دقیقاً طبق سند پیاده کنید (حتی فاصله‌ها و حروف کوچک/بزرگ)"*،
-باید این را اصلاح کنید:
-
-**در فایل `HostRegistrationSession.java`**، خط:
-```java
-connection.sendLine("ERROR Verification code mismatch");
-```
-را به این تغییر دهید:
-```java
-connection.sendLine("ERROR Invalid code");
-```
-
-از این به بعد، هر جا در این راهنما یک پیام دقیق نوشته شده (مثل `OK`, `ERROR ...`)،
-همان را عیناً در کدتان به کار ببرید.
 
 ---
 
@@ -71,8 +71,6 @@ connection.sendLine("ERROR Invalid code");
 >
 > در سناریوهای مربوط به **فضای کار**، کلاینت اتصال را باز نگه می‌دارد.
 
-یعنی:
-
 | سناریو | اتصال | رفتار |
 |--------|--------|--------|
 | `register` / `login` تکی | مرکزی | باز کن → دستور → جواب → **ببند** |
@@ -81,436 +79,376 @@ connection.sendLine("ERROR Invalid code");
 | `connect` + چت | فضای کار | باز کن → احراز هویت با توکن → **باز بماند** |
 | `create-host` (میزبان) | مرکزی | باز کن → ثبت‌نام → **برای همیشه باز بماند** |
 
-**نکتهٔ کلیدی:** برای `create-workspace` و `connect-workspace`، دستور `login` و دستور اصلی
-روی **همان یک اتصال کوتاه‌مدت** پشت سر هم می‌آیند. بعد از گرفتن پاسخ نهایی، کلاینت
-اتصال را می‌بندد. هیچ session لاگین دائمی روی central برای کلاینت‌ها نگه داشته نمی‌شود.
-
 روی `ClientHandler` یک فیلد `private Long loggedInUserId;` بگذارید که **فقط برای عمر
 همین اتصال** معنا دارد:
 - وقتی `login` موفق شد → این فیلد را پر کنید.
 - وقتی `create-workspace` یا `connect-workspace` آمد → چک کنید این فیلد مقدار داشته باشد.
-- وقتی اتصال بسته شد → این فیلد همراه با خود handler از بین می‌رود.
+- وقتی اتصال بسته شد → این فیلد همراه با handler از بین می‌رود.
 
 ---
 
-## ۱. مرحلهٔ ثبت‌نام و ورود کاربر (User Registration & Login)
+## ⚠️ اصلاح پیام خطا
 
-### پروتکل دقیق (از سند اصلی)
-
-**ثبت‌نام:**
-```
-کلاینت میفرستد:  register 09123456789 123456
-سرور پاسخ میدهد:  OK
-```
-
-**ورود:**
-```
-کلاینت میفرستد:  login 09123456789 123456
-سرور پاسخ میدهد:  OK
-```
-
-کلاینت بعد از گرفتن پاسخ، اتصال را می‌بندد.
-
-### دقیقاً چیکار کنید
-
-#### قدم ۱: مدل `User` را بسازید
-مسیر: `central/ir/sobhaneh/central/models/User.java`
-
-باید شامل این فیلدها باشد (`private final`، با getter):
-- `long id` — شناسه‌ای که از ۱ شروع می‌شود و برای هر کاربر جدید یکی افزایش می‌یابد
-- `String phoneNumber`
-- `String password`
-
-راهنمایی: برای تولید `id` یکتا، از یک `AtomicLong` در `UserManager` استفاده کنید
-(`AtomicLong` مثل `int` است ولی برای همزمانی چند Thread امن است؛ متد
-`incrementAndGet()` هر بار عدد بعدی را می‌دهد).
-
-#### قدم ۲: `UserManager` را بسازید
-مسیر: `central/ir/sobhaneh/central/UserManager.java`
-
-دو متد عمومی لازم دارید:
+در `HostRegistrationSession.java` اگر هنوز این خط هست:
 ```java
-public String register(String phoneNumber, String password) {
-    // اگر phoneNumber از قبل وجود دارد -> "ERROR User already exists"
-    // وگرنه یک User جدید بساز، به لیست اضافه کن -> "OK"
-}
-
-public String login(String phoneNumber, String password) {
-    // اگر کاربر با این phone پیدا نشد یا password اشتباه بود -> "ERROR Invalid credentials"
-    // وگرنه -> "OK"
-}
+connection.sendLine("ERROR Verification code mismatch");
 ```
-برای ذخیرهٔ کاربران از `ConcurrentHashMap<String, User>` استفاده کنید — کلید
-`phoneNumber`، مقدار `User`. اینطوری هم جست‌وجو با شماره تلفن سریع است، هم
-Thread-safe است.
-
-نکته: این دو متد را هم مثل `HostManager.reserve`، `synchronized` بگذارید تا اگر دو
-درخواست `register` هم‌زمان با یک شماره تلفن بیایند، فقط یکی موفق شود.
-
-متد `login` بهتر است در صورت موفقیت، خودِ `User` (یا حداقل `userId`) را برگرداند تا
-`ClientHandler` بتواند `loggedInUserId` را ست کند. می‌توانید یک متد جدا مثل
-`User findUser(String phone, String password)` هم داشته باشید.
-
-#### قدم ۳: دستورات را به `ClientHandler` اضافه کنید
-در متد `dispatch` که از قبل دارید (همان `switch` روی دستور)، دو `case` جدید اضافه
-کنید:
+به این تغییر دهید:
 ```java
-case "register" -> dispatchRegister(connection, parts);
-case "login" -> dispatchLogin(connection, parts);
+connection.sendLine("ERROR Invalid code");
 ```
-هر کدام را مثل `dispatchCreateHost` به یک متد کوچک جدا بفرستید که ورودی را پارس
-می‌کند و `UserManager` را صدا می‌زند. یک نمونهٔ `UserManager` هم مثل `hostManager`،
-`static final` در `ClientHandler` بسازید.
-
-در `dispatchLogin` بعد از login موفق:
-```java
-this.loggedInUserId = user.getId();   // فقط برای عمر همین اتصال
-connection.sendLine("OK");
-```
-
-#### قدم ۴: تست کنید
-با `telnet localhost 8000`:
-```
-register 09123456789 123456
-```
-باید `OK` بگیرید. دوباره همین را بفرستید — باید `ERROR User already exists` بگیرید.
-```
-login 09123456789 123456
-```
-باید `OK` بگیرید.
-```
-login 09123456789 wrongpass
-```
-باید `ERROR Invalid credentials` بگیرید.
-
-(در telnet می‌توانید بعد از login همان اتصال را باز نگه دارید و دستور بعدی را بزنید؛
-کلاینت واقعی بعد از کار، اتصال را می‌بندد.)
 
 ---
 
-## ۲. مرحلهٔ ایجاد فضای کار (create-workspace)
+## تقسیم‌بندی ۵ روزه
 
-### پروتکل دقیق
+| روز | موضوع | سختی |
+|-----|--------|------|
+| ۱ | کاربران + login state | متوسط |
+| ۲ | ایجاد فضای کار | متوسط‌روبه‌بالا |
+| ۳ | اتصال و توکن | متوسط‌روبه‌بالا |
+| ۴ | کلاینت + پایهٔ چت | متوسط‌روبه‌بالا |
+| ۵ | چت کامل + disconnect + shutdown | متوسط‌روبه‌بالا |
+
+---
+
+# روز ۱ — کاربران + آماده‌سازی پایه
+
+**هدف:** ثبت‌نام و ورود کار کند.
+
+### فایل‌هایی که باید بسازید / تغییر دهید
 
 ```
-کلاینت یک اتصال به مرکزی باز می‌کند و پشت سر هم می‌فرستد:
-                    login 09123456789 123456
-                    create-workspace company1
-سرور به کلاینت:      OK                    (جواب login)
-سرور به میزبان:     create-workspace 10143 1001
-                    (پورت انتخابی + شناسهٔ کاربر سازنده)
-میزبان به سرور:      OK
-سرور به کلاینت:      OK 127.0.0.1 10143
-کلاینت اتصال را می‌بندد.
+central-server/src/main/java/ir/sobhaneh/central/
+├── models/
+│   └── User.java                    🔲 بساز
+├── UserManager.java                 🔲 بساز
+└── ClientHandler.java               ✅ تغییر بده (دستورات register/login + loggedInUserId)
 ```
 
-### دقیقاً چیکار کنید
+### جزئیات
 
-این مرحله چون هم central و هم host را درگیر می‌کند، کمی پیچیده‌تر است. آن را به
-چند زیرقدم می‌شکنیم:
-
-#### قدم ۱: مدل `WorkspaceInfo` در central
-مسیر: `central/ir/sobhaneh/central/models/WorkspaceInfo.java`
-
-فیلدها: `String name`, `String hostIp`, `int port`, `long creatorUserId`.
-
-#### قدم ۲: `WorkspaceManager` در central
-مسیر: `central/ir/sobhaneh/central/WorkspaceManager.java`
-
-این کلاس باید:
-1. یک لیست از `WorkspaceInfo`های موجود نگه دارد (برای چک یکتا بودن اسم).
-2. متدی داشته باشد که یک میزبان تصادفی از `HostManager.getRegisteredHosts()`
-   انتخاب کند.
-3. از آن میزبان یک پورت با `HostInfo.allocateRandomPort()` بگیرد (دقیقاً همان متدی
-   که برای `create-host` ساختیم — همینجاست که کد قبلی‌مان دوباره به کار می‌آید).
-
-نکته دربارهٔ ارتباط با میزبان: چون اتصال میزبان به central از مرحلهٔ `create-host`
-هنوز باز است (یادتان هست `pendingHost.setSocket(socket)` را در
-`HostRegistrationSession` نوشتیم؟)، باید بتوانید از طریق همان Socket ذخیره‌شده در
-`HostInfo`، به میزبان دستور `create-workspace <port> <userId>` بفرستید و منتظر
-`OK` بمانید.
-
-راهنمایی مهم: چون اتصال میزبان الان توسط `ClientHandler` آن میزبان "اشغال" است
-(همان Thread دارد در حلقهٔ `while` منتظر خط بعدی از میزبان است)، فرستادن دستور
-جدید به میزبان از یک Thread دیگر (مثلاً از Thread کلاینتی که `create-workspace`
-خواسته) نیاز به هماهنگی دارد. برای فاز اول، ساده‌ترین راه: از همان `Connection`
-ذخیره‌شده در `HostInfo` مستقیماً `sendLine` بزنید، و در سمت `ClientHandler` میزبان،
-اگر خطی غیر از دستورات شناخته‌شده (`create-host`, `check`) آمد، آن را هم پردازش
-کنید (یعنی به `HostInfo` خودش دستور بدهید که یک `ServerSocket` جدید برای Workspace
-باز کند).
-
-اگر این بخش گیج‌کننده بود، همینجا متوقف شوید و از من بخواهید با هم کدش را بنویسیم
-— این جایی است که واقعاً باید مرحله‌به‌مرحله جلو برویم، نه یکجا.
-
-#### قدم ۳: دستور `create-workspace` در `ClientHandler`
+#### ۱. `User.java`
 ```java
-case "create-workspace" -> dispatchCreateWorkspace(connection, parts);
+// فیلدها (private final + getter):
+long id;
+String phoneNumber;
+String password;
 ```
 
-داخل متد:
-- اگر `loggedInUserId == null` بود → `ERROR Not logged in` (یا پیام مناسب)
-- وگرنه `WorkspaceManager` را صدا بزن و پاسخ `OK <ip> <port>` را بفرست.
+#### ۲. `UserManager.java`
+```java
+public String register(String phoneNumber, String password);
+// اگر وجود داشت → "ERROR User already exists" وگرنه → "OK"
 
-یادتان باشد: `loggedInUserId` فقط چون کلاینت **همین الان** روی همین اتصال `login`
-کرده مقدار دارد. کلاینت بعد از گرفتن پاسخ نهایی، اتصال را می‌بندد.
+public String login(String phoneNumber, String password);
+// اگر پیدا نشد یا پسورد غلط → "ERROR Invalid credentials" وگرنه → "OK"
+// بهتر است userId را هم برگرداند تا ClientHandler بتواند loggedInUserId را ست کند
+```
+ذخیره با `ConcurrentHashMap<String, User>` — کلید: phoneNumber  
+تولید id با `AtomicLong`  
+متدها `synchronized`
 
-#### قدم ۴: کلاس `Workspace` در سمت host
-مسیر: `host/ir/sobhaneh/host/Workspace.java`
+#### ۳. تغییر `ClientHandler.java`
+- فیلد: `private Long loggedInUserId = null;`
+- caseهای جدید:
+  ```java
+  case "register" -> dispatchRegister(...);
+  case "login"    -> dispatchLogin(...);
+  ```
+- در `dispatchLogin` بعد از موفقیت: `this.loggedInUserId = userId;`
 
-فیلدها: `String name`, `int port`, `ServerSocket serverSocket`,
-`Map<String, ClientSession> onlineUsers` (بعداً برای مراحل چت لازم می‌شود).
+#### ۴. تست با telnet
+```
+register 09123456789 123456     → OK
+register 09123456789 123456     → ERROR User already exists
+login 09123456789 123456        → OK
+login 09123456789 wrongpass     → ERROR Invalid credentials
+```
 
-سازنده باید یک `ServerSocket` روی پورت داده‌شده باز کند و یک Thread جدید بسازد که
-در حلقه منتظر اتصال کلاینت‌های جدید بماند (`serverSocket.accept()`).
+**خروجی روز ۱:** کاربر می‌تواند ثبت‌نام و لاگین کند.
 
-#### قدم ۵: تست
-بعد از این‌که میزبان با موفقیت ثبت شد (مرحلهٔ قبلی که تست کردیم)، در یک ترمینال
-سوم به central وصل شوید و **روی همان اتصال** پشت سر هم بزنید:
+---
+
+# روز ۲ — ایجاد فضای کار
+
+**هدف:** `create-workspace` از کلاینت تا میزبان کامل شود.
+
+### فایل‌هایی که باید بسازید / تغییر دهید
+
+```
+central-server/src/main/java/ir/sobhaneh/central/
+├── models/
+│   └── WorkspaceInfo.java           🔲 بساز
+├── WorkspaceManager.java            🔲 بساز
+└── ClientHandler.java               ✅ تغییر بده (دستور create-workspace)
+
+host/src/main/java/ir/sobhaneh/host/
+├── Workspace.java                   🔲 بساز
+├── WorkspaceManager.java            🔲 بساز (مدیریت workspaceهای این میزبان)
+└── ClientHandler یا HostRegistration ✅ تغییر بده (دریافت دستور create-workspace از مرکزی)
+```
+
+### جزئیات
+
+#### ۱. `WorkspaceInfo.java` (central)
+```java
+String name;
+String hostIp;
+int port;
+long creatorUserId;
+```
+
+#### ۲. `WorkspaceManager.java` (central)
+- لیست/Map از WorkspaceInfoها (چک یکتا بودن اسم)
+- انتخاب تصادفی میزبان از `HostManager`
+- گرفتن پورت با `HostInfo.allocateRandomPort()`
+- ارسال `create-workspace <port> <userId>` روی اتصال باز میزبان و منتظر `OK`
+
+#### ۳. دستور در `ClientHandler` (central)
+```java
+case "create-workspace" -> dispatchCreateWorkspace(...);
+```
+- اگر `loggedInUserId == null` → خطا
+- وگرنه WorkspaceManager را صدا بزن → `OK <ip> <port>`
+
+#### ۴. `Workspace.java` (host)
+```java
+String name;
+int port;
+ServerSocket serverSocket;
+// بعداً: Map آنلاین‌ها
+```
+سازنده: ServerSocket روی پورت باز کند + Thread برای `accept()`.
+
+#### ۵. `WorkspaceManager.java` (host)
+- نگه‌داری workspaceهای ساخته‌شده روی این میزبان
+- وقتی از مرکزی دستور `create-workspace <port> <userId>` آمد → Workspace جدید بساز → `OK`
+
+#### ۶. تست
+روی یک اتصال telnet به مرکزی:
 ```
 login 09123456789 123456
 create-workspace company1
+→ OK 127.0.0.1 <port>
 ```
-باید چیزی شبیه `OK 127.0.0.1 10234` بگیرید. بعد اتصال را ببندید.
+
+**خروجی روز ۲:** فضای کار ساخته می‌شود و پورت برمی‌گردد.
 
 ---
 
-## ۳. مرحلهٔ اتصال به فضای کار (connect-workspace + connect)
+# روز ۳ — اتصال به فضای کار و احراز هویت
 
-### پروتکل دقیق
+**هدف:** کاربر با توکن وارد فضای کار شود.
+
+### فایل‌هایی که باید بسازید / تغییر دهید
 
 ```
-کلاینت یک اتصال به مرکزی باز می‌کند و پشت سر هم می‌فرستد:
-                    login 09123456789 123456
-                    connect-workspace company1
-central به کلاینت:  OK                    (جواب login)
-central به کلاینت:  OK 127.0.0.1 10143 fkla48fhhf
-                    (fkla48fhhf = توکن موقت، ۱۰ کاراکتر حروف کوچک+عدد، عمر ۵ دقیقه)
-کلاینت اتصال central را می‌بندد و به فضای کار وصل می‌شود:
-کلاینت به workspace:    connect fkla48fhhf
-workspace به central:   whois fkla48fhhf
-central به workspace:   OK 1001   (شناسه کاربر)
-اگر اولین اتصال این کاربر به این workspace است:
-workspace به کلاینت:    username?
-کلاینت به workspace:    ahmad
-workspace به کلاینت:    OK
+central-server/src/main/java/ir/sobhaneh/central/
+├── models/
+│   └── Token.java                   🔲 بساز
+├── TokenManager.java                🔲 بساز
+└── ClientHandler.java               ✅ تغییر بده (connect-workspace + whois)
+
+host/src/main/java/ir/sobhaneh/host/
+├── ClientConnection.java            🔲 بساز
+├── models/
+│   └── UserSession.java             🔲 بساز
+└── Workspace.java                   ✅ تغییر بده (قبول اتصال کلاینت و ارجاع به ClientConnection)
 ```
-(از این به بعد اتصال کلاینت به فضای کار **باز می‌ماند**.)
 
-### دقیقاً چیکار کنید
+### جزئیات
 
-#### قدم ۱: مدل `Token` در central
-مسیر: `central/ir/sobhaneh/central/models/Token.java`
-
-فیلدها: `String value` (۱۰ کاراکتری)، `long userId`، `long expiresAtMillis`.
-
-برای تولید مقدار توکن: حروف کوچک انگلیسی + عدد، طول ۱۰. می‌توانید یک رشتهٔ ثابت
-`"abcdefghijklmnopqrstuvwxyz0123456789"` بسازید و ۱۰ بار یک کاراکتر تصادفی از آن
-انتخاب کنید.
-
-برای عمر ۵ دقیقه‌ای: `expiresAtMillis = System.currentTimeMillis() + 5*60*1000`.
-
-#### قدم ۲: `TokenManager` در central
-مسیر: `central/ir/sobhaneh/central/TokenManager.java`
-
-متدها:
+#### ۱. `Token.java`
 ```java
-public Token createToken(long userId) { ... }   // یک توکن جدید می‌سازد و نگه می‌دارد
-public Long resolveToken(String tokenValue) {
-    // اگر توکن پیدا نشد یا منقضی شده -> null
-    // وگرنه -> userId مربوطه
-}
+String value;          // ۱۰ کاراکتر a-z0-9
+long userId;
+long expiresAtMillis;  // now + 5*60*1000
 ```
-از `ConcurrentHashMap<String, Token>` برای نگه‌داری توکن‌ها استفاده کنید.
 
-#### قدم ۳: دستور `connect-workspace` در central
-مثل `create-workspace`:
-- روی **همان اتصال** که قبلاً `login` موفق شده، دستور می‌آید.
-- اگر `loggedInUserId == null` → خطا.
-- وگرنه `TokenManager.createToken(loggedInUserId)` را صدا بزنید و پاسخ
-  `OK <ip> <port> <token>` را بفرستید.
-- کلاینت بعد از گرفتن این پاسخ، اتصال به مرکزی را می‌بندد.
-
+#### ۲. `TokenManager.java`
 ```java
-case "connect-workspace" -> dispatchConnectWorkspace(connection, parts);
+Token createToken(long userId);
+Long resolveToken(String tokenValue);  // null اگر نبود یا منقضی
+```
+ذخیره با `ConcurrentHashMap<String, Token>`
+
+#### ۳. دستور `connect-workspace` در ClientHandler (central)
+- چک `loggedInUserId`
+- ساخت توکن
+- پاسخ: `OK <ip> <port> <token>`
+
+#### ۴. دستور `whois` در ClientHandler (central)
+- `whois <token>` → `OK <userId>` یا خطا
+
+#### ۵. `UserSession.java` (host)
+```java
+long userId;
+String username;
+ClientConnection connection;
 ```
 
-#### قدم ۴: دستورات `connect` و `whois` و `username?` در سمت host
+#### ۶. `ClientConnection.java` (host)
+- وقتی `connect <token>` آمد → اتصال کوتاه به مرکزی → `whois <token>`
+- اگر OK → چک username قبلی
+- اگر اولین بار → بفرست `username?` → بگیر → یکتا بودن → `OK`
+- اتصال را باز نگه دار
 
-اینها را داخل `ClientConnection` (کلاسی که هر کلاینت متصل به یک Workspace را
-مدیریت می‌کند — طبق نقشهٔ پوشه‌بندی اصلی) پیاده می‌کنید:
+#### ۷. تست جریان کامل
+```
+(مرکزی)  login → connect-workspace company1 → OK ip port token
+(بستن اتصال مرکزی)
+(workspace) connect <token> → username? → ahmad → OK
+```
 
-1. وقتی خط `connect <token>` می‌رسد، یک اتصال کوتاه‌مدت جدید به central باز کنید و
-   `whois <token>` بفرستید.
-2. اگر central پاسخ `OK <userId>` داد، چک کنید آیا این `userId` قبلاً در این
-   Workspace نام‌کاربری ثبت کرده یا نه (یک `Map<Long, String> userIdToUsername`
-   نگه دارید).
-3. اگر ثبت نکرده، `username?` بفرستید و منتظر پاسخ کلاینت بمانید، یکتا بودنش را
-   چک کنید (یک `Set<String> takenUsernames`)، و در نهایت `OK` بفرستید.
-4. اتصال کلاینت به فضای کار از این به بعد باز می‌ماند (برای `send-message` و بقیه).
-
-#### قدم ۵: تست
-با telnet یا یک کلاینت واقعی (که در مرحلهٔ بعد می‌سازیم)، جریان کامل را دنبال کنید:
-روی یک اتصال به مرکزی `login` و بعد `connect-workspace` بزنید، جواب را بگیرید،
-اتصال مرکزی را ببندید، بعد به پورت فضای کار وصل شوید و `connect <token>` بزنید.
+**خروجی روز ۳:** کاربر احراز هویت شده داخل فضای کار است.
 
 ---
 
-## ۴. مرحلهٔ برنامهٔ کلاینت
+# روز ۴ — برنامهٔ کلاینت + پایهٔ چت
 
-### دستوراتی که کلاینت باید پشتیبانی کند (طبق سند)
+**هدف:** کلاینت واقعی به‌جای telnet + اسکلت ذخیره‌سازی پیام.
 
-| دستور کاربر | چه اتفاقی می‌افتد |
-|---|---|
-| `register <phone> <password>` | اتصال کوتاه به central، register، بستن اتصال |
-| `login <phone> <password>` | اتصال کوتاه به central، login، بستن اتصال |
-| `create-workspace <name>` | یک اتصال: login + create-workspace، بعد بستن اتصال |
-| `connect-workspace <name>` | یک اتصال: login + connect-workspace، گرفتن توکن، بستن اتصال مرکزی، بعد اتصال به workspace و `connect <token>` |
-| `disconnect` | بستن اتصال با workspace |
-| `send-message <user> <json>` | فرستادن به workspace (باید از قبل متصل باشیم) |
-| `get-chats` | فرستادن به workspace |
-| `get-messages <user>` | فرستادن به workspace |
+### فایل‌هایی که باید بسازید
 
-### دقیقاً چیکار کنید
-
-#### قدم ۱: ساختار پوشه
 ```
-client/ir/sobhaneh/client/
-├── ClientMain.java          # main + حلقهٔ خواندن دستور از کنسول
-├── CentralConnection.java   # اتصال کوتاه‌مدت به central (register/login/...)
-└── WorkspaceConnection.java # اتصال بلندمدت به workspace + Thread جدا برای دریافت پیام
+client/src/main/java/ir/sobhaneh/client/
+├── ClientMain.java                  🔲 بساز
+├── CentralConnection.java           🔲 بساز
+├── WorkspaceConnection.java         🔲 بساز
+└── CommandParser.java               🔲 بساز
+
+host/src/main/java/ir/sobhaneh/host/
+└── models/
+    ├── Message.java                 🔲 بساز
+    └── Chat.java                    🔲 بساز
 ```
 
-#### قدم ۲: `CentralConnection`
-یک متد به ازای هر دستور کوتاه‌مدت:
+### جزئیات
+
+#### ۱. `CentralConnection.java`
 ```java
-public String register(String phone, String password) { ... }
-public String login(String phone, String password) { ... }
+String register(String phone, String password);
+String login(String phone, String password);
+String createWorkspace(String phone, String password, String name);
+// داخلش: باز کردن Socket → login → create-workspace → بستن → برگرداندن جواب
 
-// این دو متد داخل خودشان login را هم انجام می‌دهند (روی همان Socket):
-public String createWorkspace(String phone, String password, String name) {
-    // Socket باز کن
-    // login بفرست → جواب OK بگیر
-    // create-workspace بفرست → جواب نهایی بگیر
-    // Socket را ببند
-    // جواب نهایی را برگردان
-}
-public String[] connectWorkspace(String phone, String password, String name) {
-    // مشابه بالا: login + connect-workspace روی یک Socket
-    // برمی‌گرداند: ip, port, token
-}
+String[] connectWorkspace(String phone, String password, String name);
+// داخلش: login + connect-workspace روی یک Socket → برگرداندن ip, port, token
 ```
-هر کدام یک `Socket` جدید به central باز می‌کنند، کار را تمام می‌کنند، `Socket` را
-می‌بندند و پاسخ را برمی‌گردانند.
 
-#### قدم ۳: `WorkspaceConnection`
-چون این اتصال باز می‌ماند و باید هم بتوانیم بفرستیم هم هر لحظه چیزی از طرف مقابل
-(`receive-message`) دریافت کنیم، به یک Thread جدا برای خواندن نیاز داریم:
+#### ۲. `WorkspaceConnection.java`
 ```java
-public void connect(String ip, int port, String token) {
-    // Socket را باز کن، connect <token> بفرست
-    // یک Thread جدید بساز که همیشه در حلقه readLine بزند و هر چیزی که می‌آید چاپ کند
-}
-public void sendMessage(String username, String json) { ... }
-public void getChats() { ... }
-public void getMessages(String username) { ... }
-public void disconnect() { ... }
+void connect(String ip, int port, String token);
+// Socket باز، connect <token>، Thread جدا برای readLine و چاپ
+
+void sendMessage(String username, String json);
+void getChats();
+void getMessages(String username);
+void disconnect();
 ```
 
-#### قدم ۴: `ClientMain`
-یک حلقهٔ ساده که از ورودی کنسول (`Scanner` یا `BufferedReader` روی `System.in`)
-خط می‌خواند، دستور اول را تشخیص می‌دهد (`if/else` یا `switch` روی اولین کلمه)، و
-متد مناسب از `CentralConnection` یا `WorkspaceConnection` را صدا می‌زند.
+#### ۳. `CommandParser.java`
+- خط ورودی را بشکند و دستور + آرگومان‌ها را برگرداند
 
-برای `create-workspace` و `connect-workspace` باید phone و password را هم داشته
-باشد (یا از قبل ذخیره کرده باشد، یا از کاربر بپرسد).
+#### ۴. `ClientMain.java`
+- حلقهٔ خواندن از کنسول
+- تشخیص دستور و صدا زدن متد مناسب
+
+#### ۵. `Message.java` (host)
+```java
+int seq;
+String from;
+String type;
+String body;
+long timestamp;
+```
+
+#### ۶. `Chat.java` (host)
+- نمایندهٔ یک مکالمه بین دو کاربر (یا اسکلت لیست پیام‌ها)
+
+#### ۷. تست
+همهٔ دستورات register / login / create-workspace / connect-workspace از طریق کلاینت.
+
+**خروجی روز ۴:** کلاینت تعاملی کار می‌کند و مدل‌های چت آماده است.
 
 ---
 
-## ۵. مرحلهٔ چت شخصی (send-message / get-chats / get-messages)
+# روز ۵ — چت کامل + قطع اتصال + ذخیره‌سازی
 
-این‌ها همه سمت **host**، داخل کلاس `Workspace` یا یک کلاس کمکی `ChatStore` پیاده
-می‌شوند. دیگر نیازی به login به مرکزی نیست — کاربر از قبل با توکن به فضای کار
-وصل شده و احراز هویت شده است.
+**هدف:** گپ شخصی کامل + حفظ داده‌ها بعد از restart.
 
-### دقیقاً چیکار کنید
+### فایل‌هایی که باید بسازید / تغییر دهید
 
-#### قدم ۱: مدل `Message`
-مسیر: `host/ir/sobhaneh/host/Message.java`
-فیلدها: `int seq`, `String from`, `String type`, `String body`, `long timestamp`.
+```
+host/src/main/java/ir/sobhaneh/host/
+├── ClientConnection.java            ✅ تغییر بده (send-message / get-chats / get-messages / disconnect)
+├── Workspace.java                   ✅ تغییر بده (onlineUsers + ChatStore)
+└── persistence/
+    └── HostDataStore.java           🔲 بساز
 
-#### قدم ۲: `ChatStore`
-مسیر: `host/ir/sobhaneh/host/ChatStore.java`
+central-server/src/main/java/ir/sobhaneh/central/
+└── persistence/
+    └── DataStore.java               🔲 بساز
 
+(+ تغییر HostMain.java و CentralServer.java برای shutdown و بارگیری)
+```
+
+### جزئیات
+
+#### ۱. منطق چت داخل host
+یک `ChatStore` (می‌تواند داخل Workspace یا کلاس جدا باشد):
 ```java
-private final Map<String, List<Message>> conversations = new ConcurrentHashMap<>();
-private final Map<String, Integer> lastSeq = new ConcurrentHashMap<>();
-private final Map<String, Integer> unreadCount = new ConcurrentHashMap<>();
+Map<String, List<Message>> conversations;  // کلید: "ahmad:saeed" (مرتب‌شده)
+Map<String, Integer> lastSeq;
+Map<String, Integer> unreadCount;
 ```
-کلید مکالمه: دو نام کاربری را الفبایی مرتب و با `:` بچسبانید، مثلاً
-`"ahmad:saeed"` — این‌طوری برای هر جفت کاربر همیشه یک کلید یکتا دارید، فارغ از
-این‌که کدام‌شان فرستنده بوده.
-
-متدها:
 ```java
-public int addMessage(String from, String to, String type, String body) {
-    // seq جدید بساز، به لیست اضافه کن، unreadCount گیرنده را زیاد کن، seq را برگردان
-}
-public String getChatsJson(String forUser) { ... }     // با Gson تبدیل به JSON
-public String getMessagesJson(String userA, String userB) { ... } // + علامت‌گذاری خوانده‌شده
+int addMessage(String from, String to, String type, String body);
+String getChatsJson(String forUser);
+String getMessagesJson(String userA, String userB);
+```
+وابستگی Gson در pom.xml پروژهٔ host.
+
+#### ۲. دستورات در `ClientConnection`
+```
+send-message <username> <json>  → ذخیره + OK <seq> + اگر آنلاین بود receive-message
+get-chats                       → OK [json array]
+get-messages <username>         → علامت خوانده‌شده + OK [json array]
+disconnect                      → بستن سوکت + حذف از onlineUsers
 ```
 
-#### قدم ۳: اتصال به Gson
-در `pom.xml` پروژهٔ host، وابستگی Gson را اضافه کنید (دقیقاً همان که در نقشه‌راه
-اولیه گفته شده بود). برای ساخت JSON از یک لیست، کافیست:
-```java
-new Gson().toJson(someList);
-```
+#### ۳. قطع ناگهانی
+اگر `readLine()` مقدار `null` برگرداند → در `finally` از `onlineUsers` حذف شود.
 
-#### قدم ۴: در `ClientConnection` (سمت host)، سه دستور جدید را پردازش کنید
-```
-send-message <username> <json>
-get-chats
-get-messages <username>
-```
-و اگر گیرنده در همان لحظه آنلاین بود (در `onlineUsers` Workspace)، بلافاصله
-`receive-message <from> <json>` را به Connection او بفرستید.
+#### ۴. `DataStore.java` (central) — اجباری
+- ذخیره: کاربران، میزبان‌ها، فضای‌کارها → `data/central.dat` با Gson
+- بارگیری در ابتدای `main` قبل از باز کردن ServerSocket
+- دستور `shutdown` در حلقهٔ کنسول → ذخیره + `System.exit(0)`
+
+#### ۵. `HostDataStore.java` (host) — اجباری
+- ذخیره: مکالمات + کاربران هر Workspace → `data/host-<ip>-<startPort>.dat`
+- بارگیری هنگام راه‌اندازی
+- دستور `shutdown` در HostMain
+
+#### ۶. تست نهایی
+- دو کلاینت به یک workspace وصل شوند
+- پیام بفرستند و بگیرند
+- `get-chats` / `get-messages`
+- `disconnect`
+- `shutdown` و راه‌اندازی دوباره → داده‌ها سر جایشان باشند
+
+**خروجی روز ۵:** گپ شخصی کامل + داده‌ها بعد از restart حفظ می‌شوند.
 
 ---
 
-## ۶. مرحلهٔ قطع اتصال
-
-- دستور `disconnect` از کلاینت → `ClientConnection` سوکت را می‌بندد و کاربر را از
-  `onlineUsers` حذف می‌کند.
-- اگر `readLine()` مقدار `null` برگرداند (یعنی کلاینت به‌طور ناگهانی قطع شده)، همان
-  کار حذف از `onlineUsers` باید در یک بلوک `finally` انجام شود — دقیقاً مثل الگویی
-  که در `ClientHandler` سمت central با `session.cancel()` در `finally` پیاده
-  کردیم.
-
----
-
-## ۷. فاز ۲: ذخیره‌سازی با shutdown
-
-- در `ClientMain` سمت central (و `HostMain`)، حلقهٔ کنسول باید دستور `shutdown` را
-  هم بشناسد.
-- با دریافت `shutdown`: تمام داده‌ها (کاربران، میزبان‌ها، فضای‌کارها در central؛
-  مکالمات و کاربران در هر Workspace) با Gson به فایل نوشته شوند، سپس
-  `System.exit(0)`.
-- در ابتدای `main`، قبل از باز کردن `ServerSocket`، چک کنید فایل ذخیره‌شده وجود
-  دارد؛ اگر دارد، با Gson بارگیری و داده‌ها را در حافظه بازسازی کنید.
-
----
-
-## ترتیب پیشنهادی برای جلسات بعدی کدنویسی
+## ترتیب پیشنهادی جلسات کدنویسی
 
 1. ✅ ~~ثبت میزبان (create-host + check)~~ — تمام شده
-2. 🔲 `User` + `UserManager` + دستورات `register`/`login`
-3. 🔲 `WorkspaceInfo` + `WorkspaceManager` + `Workspace` سمت host + دستور `create-workspace`
-4. 🔲 `Token` + `TokenManager` + دستور `connect-workspace` + `connect`/`whois`/`username?`
-5. 🔲 پروژهٔ `client` (حداقل `register`, `login`, `create-workspace`, `connect-workspace`)
-6. 🔲 `Message` + `ChatStore` + `send-message`/`get-chats`/`get-messages`
-7. 🔲 `disconnect` و مدیریت قطع ناگهانی
-8. 🔲 `shutdown` و بارگیری فاز ۲
+2. 🔲 روز ۱: `User` + `UserManager` + `register`/`login`
+3. 🔲 روز ۲: `WorkspaceInfo` + `WorkspaceManager` + `Workspace` + `create-workspace`
+4. 🔲 روز ۳: `Token` + `TokenManager` + `connect-workspace` + `connect`/`whois`/`username?`
+5. 🔲 روز ۴: پروژهٔ `client` + مدل‌های `Message`/`Chat`
+6. 🔲 روز ۵: چت کامل + `disconnect` + `DataStore` / `HostDataStore` + `shutdown`
 
-**پیشنهاد من:** برای هر شماره، وقتی آماده بودید، فقط بگویید "بریم سراغ مرحلهٔ ۲" و
-من دقیقاً همان‌طور که تا الان جلو رفتیم (فایل‌های کوچک، تک‌مسئولیتی، بدون
-stream/record پیچیده) با هم می‌نویسیمش.
+**پیشنهاد:** برای هر روز وقتی آماده بودید بگویید «بریم سراغ روز ۱» تا همان‌طور که تا الان جلو رفتیم، فایل‌به‌فایل با هم بنویسیم.
