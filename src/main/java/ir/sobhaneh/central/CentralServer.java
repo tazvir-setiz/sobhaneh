@@ -12,6 +12,7 @@ public class CentralServer {
     private ServerSocket serverSocket;
     private final int portNumber;
     private final UserService userService = new UserService();
+    private final HostService hostService = new HostService();
     public CentralServer() {
         this.portNumber = 8000;
         try {
@@ -24,7 +25,7 @@ public class CentralServer {
         while (true) {
             try {
                 Connection newConnection = new Connection(serverSocket.accept());
-                new Thread(new ClientHandler(newConnection, userService)).start();
+                new Thread(new ClientHandler(newConnection, userService, hostService)).start();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
