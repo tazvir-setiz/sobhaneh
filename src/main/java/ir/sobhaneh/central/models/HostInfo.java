@@ -1,4 +1,4 @@
-package ir.sobhaneh.common;
+package ir.sobhaneh.central.models;
 
 import java.net.Socket;
 import java.util.Set;
