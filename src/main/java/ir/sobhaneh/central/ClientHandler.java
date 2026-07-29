@@ -14,13 +14,16 @@ public class ClientHandler implements Runnable {
     }
     @Override
     public void run() {
-        while (true) {
-            try (Connection connection = new Connection(socket)) {
-                connection.readLine();
-
-            }catch (IOException e){
-                e.printStackTrace();
+        try (Connection connection = new Connection(socket)) {
+            String line;
+            while ((line = connection.readLine()) != null) {
+                System.out.println("Received: " + line);
+                handleCommand(connection, line);
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+    }
+    private void handleCommand(Connection connection, String line) throws IOException {
     }
 }
