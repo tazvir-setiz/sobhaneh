@@ -8,12 +8,14 @@ import ir.sobhaneh.common.Protocol;
 import java.io.IOException;
 
 public class ClientHandler implements Runnable {
-    Connection connection;
-    UserService userService;
+    private final Connection connection;
+    private final UserService userService;
+    private final HostService hostService;
 
-    public ClientHandler(Connection connection, UserService userService) {
+    public ClientHandler(Connection connection, UserService userService, HostService hostService) {
         this.connection = connection;
         this.userService = userService;
+        this.hostService = hostService;
     }
 
     @Override
@@ -41,6 +43,18 @@ public class ClientHandler implements Runnable {
                             case OK -> connection.sendLine(Protocol.OK);
                             case USER_NOT_FOUND -> connection.sendLine(Protocol.ERROR + " User not found");
                             case WRONG_PASSWORD -> connection.sendLine(Protocol.ERROR + " Wrong password");
+                        }
+                    }
+                    case Protocol.CREATE_HOST -> {
+                        CreateHostResult result = hostService.createHost(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+                        switch (result) {
+                            case OK -> {
+                                HostInfo newHost = new HostInfo(args[0], Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+                                connection.sendLine(Protocol.OK + " " + newHost.getAssignedPort());
+                            }
+                            case PORT_NUMBER_MUST_BE_AT_LEAST_10000 ->  connection.sendLine(Protocol.ERROR + " Port number must be at least 10000");
+                            case AT_MOST_1000_PORTS_IS_ALLOWED ->  connection.sendLine(Protocol.ERROR + " At most 1000 ports is allowed");
+                            case PORT_IN_USE_BY_ANOTHER_HOST ->   connection.sendLine(Protocol.ERROR + " Port in use by another host");
                         }
                     }
                     default -> connection.sendLine(Protocol.ERROR + " Unknown command");
