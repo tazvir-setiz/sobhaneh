@@ -1,5 +1,3 @@
-
-
 package ir.sobhaneh.central;
 
 import java.util.Random;
@@ -9,12 +7,13 @@ public class HostInfo {
     private final int startPort;
     private final int endPort;
     private final int assignedPort;
-    private boolean verified = false;
-    public HostInfo(final String ip, final int startPort, final int endPort, int assignedPort) {
+
+    public HostInfo(final String ip, final int startPort, final int endPort) {
         this.ip = ip;
         this.startPort = startPort;
         this.endPort = endPort;
-        this.assignedPort = assignedPort;
+        Random rand = new Random();
+        this.assignedPort = rand.nextInt(endPort - startPort + 1) + startPort;
     }
 
     public String getIp() {
@@ -31,13 +30,5 @@ public class HostInfo {
 
     public int getAssignedPort() {
         return assignedPort;
-    }
-
-    public boolean isVerified() {
-        return verified;
-    }
-
-    public void setVerified(boolean verified) {
-        this.verified = verified;
     }
 }
