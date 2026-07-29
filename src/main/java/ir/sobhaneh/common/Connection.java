@@ -1,4 +1,7 @@
-package ir.sobhaneh.central.models;
+//in the name of ALLAH
+//YA MAHDI
+
+package ir.sobhaneh.common;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,29 +9,26 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+/** یک اتصال TCP خط‌به‌خط. هم central و هم host از همین کلاس استفاده می‌کنند. */
 public class Connection implements AutoCloseable {
-    private Socket socket;
-    private PrintWriter out;
-    private BufferedReader in;
-    private final Object readLock = new Object();
-    private final Object writeLock = new Object();
+    private final Socket socket;
+    private final PrintWriter out;
+    private final BufferedReader in;
 
     public Connection(Socket socket) throws IOException {
         this.socket = socket;
-        out = new PrintWriter(socket.getOutputStream(), true);
-        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
+
     public String readLine() throws IOException {
-        synchronized (readLock) {
-            return in.readLine();
-        }
+        return in.readLine();
     }
 
     public void sendLine(String line) throws IOException {
-        synchronized (writeLock) {
-            out.println(line);
-        }
+        out.println(line);
     }
+
     @Override
     public void close() throws IOException {
         out.close();
