@@ -23,11 +23,25 @@ public class HostInfo {
         }
     }
 
-    public String getIp() { return ip; }
-    public int getStartPort() { return startPort; }
-    public int getEndPort() { return endPort; }
-    public Socket getSocket() { return socket; }
-    public void setSocket(Socket socket) { this.socket = socket; }
+    public String getIp() {
+        return ip;
+    }
+
+    public int getStartPort() {
+        return startPort;
+    }
+
+    public int getEndPort() {
+        return endPort;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
+    }
 
     public boolean overlaps(int otherStart, int otherEnd) {
         return startPort <= otherEnd && otherStart <= endPort;
