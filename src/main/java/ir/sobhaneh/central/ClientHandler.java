@@ -14,6 +14,9 @@ public class ClientHandler implements Runnable {
     private static final UserManager userManager = new UserManager();
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
+    private static final String COMMAND_REGISTER = "register";
+    private static final String COMMAND_LOGIN = "login";
+    private static final String COMMAND_LOGOUT = "logout";
 
     private final Socket socket;
     private final HostRegistrationSession session;
@@ -48,6 +51,8 @@ public class ClientHandler implements Runnable {
         switch (parts[0]) {
             case COMMAND_CREATE_HOST -> dispatchCreateHost(connection, parts);
             case COMMAND_CHECK -> session.handleCheck(connection, socket);
+            case COMMAND_REGISTER -> dispatchRegister(connection, parts);
+            case COMMAND_LOGIN -> dispatchLogin(connection, parts);
             default -> connection.sendLine("ERROR Unknown command");
         }
     }
@@ -86,7 +91,9 @@ public class ClientHandler implements Runnable {
         String phoneNumber = parts[1];
         String password = parts[2];
         String result = userManager.login(phoneNumber, password);
-        loggedInUserId = userManager.findByPhone(phoneNumber).getId();
+        if ("OK".equals(result)) {
+            loggedInUserId = userManager.findByPhone(phoneNumber).getId();
+        }
         connection.sendLine(result);
     }
 }
