@@ -5,13 +5,11 @@ import ir.sobhaneh.central.models.User;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class UserManager {
-    public Object registerLock = new Object();
-    private ConcurrentHashMap<String, User> users = new ConcurrentHashMap<String, User>();
+    public final Object registerLock = new Object();
+    private final ConcurrentHashMap<String, User> users = new ConcurrentHashMap<>();
 
     public User findByPhone(String phone) {
-        if (users.containsKey(phone)) {
-            return users.get(phone);
-        } else return null;
+        return users.getOrDefault(phone, null);
     }
 
     public boolean checkPhoneNumber(String phone) {

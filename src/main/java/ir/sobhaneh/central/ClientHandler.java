@@ -11,12 +11,13 @@ import java.net.Socket;
 public class ClientHandler implements Runnable {
     private static final HostManager hostManager = new HostManager();
     private static final VerificationService verificationService = new VerificationService();
-
+    private static final UserManager userManager = new UserManager();
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
 
     private final Socket socket;
     private final HostRegistrationSession session;
+    private Long loggedInUserId = null;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -64,5 +65,28 @@ public class ClientHandler implements Runnable {
         } catch (NumberFormatException e) {
             connection.sendLine("ERROR Ports must be numbers");
         }
+    }
+
+    private void dispatchRegister(Connection connection, String[] parts) throws IOException {
+        if (parts.length != 3) {
+            connection.sendLine("ERROR Usage: register <phoneNumber> <password>");
+            return;
+        }
+        String phoneNumber = parts[1];
+        String password = parts[2];
+        String result = userManager.register(phoneNumber, password);
+        connection.sendLine(result);
+    }
+
+    private void dispatchLogin(Connection connection, String[] parts) throws IOException {
+        if (parts.length != 3) {
+            connection.sendLine("ERROR Usage: login <phoneNumber> <password>");
+            return;
+        }
+        String phoneNumber = parts[1];
+        String password = parts[2];
+        String result = userManager.login(phoneNumber, password);
+        loggedInUserId = userManager.findByPhone(phoneNumber).getId();
+        connection.sendLine(result);
     }
 }
