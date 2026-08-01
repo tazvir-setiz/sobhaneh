@@ -7,11 +7,11 @@ import java.io.IOException;
 public class HostCommandHandler {
     private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
     private final Connection centralConnection;
-    private final WorkspaceManager workspaceManager;
+    private final HostSideWorkspaceManager hostSideWorkspaceManager;
 
-    public HostCommandHandler(Connection centralConnection, WorkspaceManager workspaceManager) {
+    public HostCommandHandler(Connection centralConnection, HostSideWorkspaceManager hostSideWorkspaceManager) {
         this.centralConnection = centralConnection;
-        this.workspaceManager = workspaceManager;
+        this.hostSideWorkspaceManager = hostSideWorkspaceManager;
     }
 
     public void listen() throws IOException {
@@ -52,7 +52,7 @@ public class HostCommandHandler {
             centralConnection.sendLine("ERROR Invalid user id");
             return;
         }
-        centralConnection.sendLine(workspaceManager.handleCreateWorkspace(port, userId));
+        centralConnection.sendLine(hostSideWorkspaceManager.handleCreateWorkspace(port, userId));
     }
 
 
