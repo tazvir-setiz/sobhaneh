@@ -10,6 +10,8 @@ import ir.sobhaneh.common.Connection;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WorkspaceManager {
     private static final String RESPONSE_OK = "OK";
@@ -20,8 +22,25 @@ public class WorkspaceManager {
     private final Object createLock = new Object();
     private final ConcurrentHashMap<String, WorkspaceInfo> workspaces = new ConcurrentHashMap<>();
 
+    private static final int MAX_WORKSPACE_NAME_LENGTH = 60;
+    private static final Pattern WORKSPACE_NAME_PATTERN = Pattern.compile("[A-Za-z0-9_]+");
+
+    private static String validateWorkspaceName(String name) {
+        if (name.length() > MAX_WORKSPACE_NAME_LENGTH) {
+            return "ERROR Workspace name too long (max " + MAX_WORKSPACE_NAME_LENGTH + ")";
+        }
+        if (!WORKSPACE_NAME_PATTERN.matcher(name).matches()) {
+            return "ERROR Workspace name must contain only letters, digits, and underscore";
+        }
+        return null;
+    }
+
     public String createWorkspace(String name, long creatorUserId, List<HostInfo> registeredHosts) throws IOException {
         HostPortReservation reservation;
+        String validationResult = validateWorkspaceName(name);
+        if (validationResult != null) {
+            return validationResult;
+        }
         synchronized (createLock) {
             if (workspaces.containsKey(name)) {
                 return ERROR_ALREADY_EXISTS;
