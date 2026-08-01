@@ -109,11 +109,22 @@ public class ClientHandler implements Runnable {
             return;
         }
         String workspaceName = parts[1];
+        if(loggedInUserId == null) {
+            connection.sendLine("ERROR Usage: you are not logged in");
+            return;
+        }
         AtomicInteger alocatedPort = new AtomicInteger(-1);
         HostInfo alocatedHost = workspaceManager.allocateHost(hostManager.getRegisteredHosts(),  alocatedPort);
+        if(alocatedHost == null) {
+            connection.sendLine("ERROR Usage: no enough port to allocate a host");
+            return;
+        }
         Connection hostConnection = new Connection(alocatedHost.getSocket());
         hostConnection.sendLine("create-workspace " + alocatedPort.intValue() + " " + loggedInUserId.intValue());
-
-
+        String answer = hostConnection.readLine();
+        if(answer.equals("OK")) {
+            workspaceManager.createWorkspace(workspaceName, loggedInUserId, alocatedPort.intValue());
+            connection.sendLine("OK " + "127.0.0.1 " + alocatedPort.intValue());
+        }
     }
 }
