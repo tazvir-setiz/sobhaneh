@@ -3,20 +3,25 @@
 
 package ir.sobhaneh.central;
 
+import ir.sobhaneh.central.models.HostInfo;
 import ir.sobhaneh.common.Connection;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ClientHandler implements Runnable {
     private static final HostManager hostManager = new HostManager();
     private static final VerificationService verificationService = new VerificationService();
     private static final UserManager userManager = new UserManager();
+    private static final WorkspaceManager workspaceManager = new WorkspaceManager();
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
     private static final String COMMAND_REGISTER = "register";
     private static final String COMMAND_LOGIN = "login";
-    private static final String COMMAND_LOGOUT = "logout";
+    private static final String COMMAND_DISCONNECT = "disconnect";
+    private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
 
     private final Socket socket;
     private final HostRegistrationSession session;
@@ -53,6 +58,7 @@ public class ClientHandler implements Runnable {
             case COMMAND_CHECK -> session.handleCheck(connection, socket);
             case COMMAND_REGISTER -> dispatchRegister(connection, parts);
             case COMMAND_LOGIN -> dispatchLogin(connection, parts);
+            case COMMAND_CREATE_WORKSPACE ->  dispatchCreateWorkspace(connection, parts);
             default -> connection.sendLine("ERROR Unknown command");
         }
     }
@@ -95,5 +101,19 @@ public class ClientHandler implements Runnable {
             loggedInUserId = userManager.findByPhone(phoneNumber).getId();
         }
         connection.sendLine(result);
+    }
+
+    private void  dispatchCreateWorkspace(Connection connection, String[] parts) throws IOException {
+        if (parts.length != 2) {
+            connection.sendLine("ERROR Usage: create-workspace <workspaceName>");
+            return;
+        }
+        String workspaceName = parts[1];
+        AtomicInteger alocatedPort = new AtomicInteger(-1);
+        HostInfo alocatedHost = workspaceManager.allocateHost(hostManager.getRegisteredHosts(),  alocatedPort);
+        Connection hostConnection = new Connection(alocatedHost.getSocket());
+        hostConnection.sendLine("create-workspace " + alocatedPort.intValue() + " " + loggedInUserId.intValue());
+
+
     }
 }
