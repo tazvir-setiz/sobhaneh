@@ -32,7 +32,7 @@ public class TokenManager {
     }
 
     public Token resolve(String token) {
-        Token foundToken = tokens.get(token);
+        Token foundToken = findByToken(token);
         if(foundToken.isExpired()) {
             tokens.remove(token);
             return null;
