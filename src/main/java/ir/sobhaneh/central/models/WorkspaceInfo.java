@@ -15,4 +15,20 @@ public class WorkspaceInfo {
         this.port = port;
         this.creatorUserId = creatorUserId;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getHostIp() {
+        return hostIp;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public long getCreatorUserId() {
+        return creatorUserId;
+    }
 }

@@ -103,28 +103,17 @@ public class ClientHandler implements Runnable {
         connection.sendLine(result);
     }
 
-    private void  dispatchCreateWorkspace(Connection connection, String[] parts) throws IOException {
+    private void dispatchCreateWorkspace(Connection connection, String[] parts) throws IOException {
+        if (loggedInUserId == null) {
+            connection.sendLine("ERROR Not logged in");
+            return;
+        }
         if (parts.length != 2) {
             connection.sendLine("ERROR Usage: create-workspace <workspaceName>");
             return;
         }
         String workspaceName = parts[1];
-        if(loggedInUserId == null) {
-            connection.sendLine("ERROR Usage: you are not logged in");
-            return;
-        }
-        AtomicInteger alocatedPort = new AtomicInteger(-1);
-        HostInfo alocatedHost = workspaceManager.allocateHost(hostManager.getRegisteredHosts(),  alocatedPort);
-        if(alocatedHost == null) {
-            connection.sendLine("ERROR Usage: no enough port to allocate a host");
-            return;
-        }
-        Connection hostConnection = new Connection(alocatedHost.getSocket());
-        hostConnection.sendLine("create-workspace " + alocatedPort.intValue() + " " + loggedInUserId.intValue());
-        String answer = hostConnection.readLine();
-        if(answer.equals("OK")) {
-            workspaceManager.createWorkspace(workspaceName, loggedInUserId, alocatedPort.intValue());
-            connection.sendLine("OK " + "127.0.0.1 " + alocatedPort.intValue());
-        }
+        String result = workspaceManager.createWorkspace(workspaceName, loggedInUserId, hostManager.getRegisteredHosts());
+        connection.sendLine(result);
     }
 }
