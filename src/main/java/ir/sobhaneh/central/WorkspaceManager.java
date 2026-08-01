@@ -10,47 +10,49 @@ import ir.sobhaneh.common.Connection;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class WorkspaceManager {
     private static final String RESPONSE_OK = "OK";
+    private static final String ERROR_ALREADY_EXISTS = "ERROR Workspace already exists";
+    private static final String ERROR_NO_HOST = "ERROR No available host";
+    private static final String ERROR_HOST_REJECTED = "ERROR Host failed to create workspace";
 
-    public final Object createLock = new Object();
+    private final Object createLock = new Object();
     private final ConcurrentHashMap<String, WorkspaceInfo> workspaces = new ConcurrentHashMap<>();
 
     public String createWorkspace(String name, long creatorUserId, List<HostInfo> registeredHosts) throws IOException {
+        HostPortReservation reservation;
         synchronized (createLock) {
             if (workspaces.containsKey(name)) {
-                return "ERROR Workspace already exists";
+                return ERROR_ALREADY_EXISTS;
             }
-
-            AtomicInteger allocatedPort = new AtomicInteger(-1);
-            HostInfo allocatedHost = allocateHost(registeredHosts, allocatedPort);
-
-            if (allocatedHost == null) {
-                return "ERROR No available host";
+            reservation = reserveHostAndPort(registeredHosts);
+            if (reservation == null) {
+                return ERROR_NO_HOST;
             }
-
-            int port = allocatedPort.get();
-            boolean confirmed = notifyHost(allocatedHost, port, creatorUserId);
-
-            if (!confirmed) {
-                allocatedHost.releasePort(port);
-                return "ERROR Host failed to create workspace";
-            }
-
-            WorkspaceInfo info = new WorkspaceInfo(name, allocatedHost.getIp(), port, creatorUserId);
-            workspaces.put(name, info);
-
-            return RESPONSE_OK + " " + allocatedHost.getIp() + " " + port;
         }
+
+        boolean confirmed = notifyHost(reservation.host(), reservation.port(), creatorUserId);
+        if (!confirmed) {
+            reservation.host().releasePort(reservation.port());
+            return ERROR_HOST_REJECTED;
+        }
+
+        WorkspaceInfo info = buildWorkspaceInfo(name, reservation, creatorUserId);
+        String conflict = registerWorkspaceIfAbsent(name, info);
+        if (conflict != null) {
+            reservation.host().releasePort(reservation.port());
+            return conflict;
+        }
+
+        return buildSuccessResponse(reservation);
     }
 
-    private HostInfo allocateHost(List<HostInfo> hosts, AtomicInteger port) {
+    private HostPortReservation reserveHostAndPort(List<HostInfo> hosts) {
         for (HostInfo host : hosts) {
-            port.set(host.allocateRandomPort());
-            if (port.get() != -1) {
-                return host;
+            int port = host.allocateRandomPort();
+            if (port != -1) {
+                return new HostPortReservation(host, port);
             }
         }
         return null;
@@ -61,5 +63,21 @@ public class WorkspaceManager {
         hostConnection.sendLine("create-workspace " + port + " " + creatorUserId);
         String response = hostConnection.readLine();
         return RESPONSE_OK.equals(response);
+    }
+
+    private WorkspaceInfo buildWorkspaceInfo(String name, HostPortReservation reservation, long creatorUserId) {
+        return new WorkspaceInfo(name, reservation.host().getIp(), reservation.port(), creatorUserId);
+    }
+
+    private String registerWorkspaceIfAbsent(String name, WorkspaceInfo info) {
+        WorkspaceInfo existing = workspaces.putIfAbsent(name, info);
+        return existing == null ? null : ERROR_ALREADY_EXISTS;
+    }
+
+    private String buildSuccessResponse(HostPortReservation reservation) {
+        return RESPONSE_OK + " " + reservation.host().getIp() + " " + reservation.port();
+    }
+
+    private record HostPortReservation(HostInfo host, int port) {
     }
 }

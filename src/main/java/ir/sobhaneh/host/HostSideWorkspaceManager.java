@@ -3,7 +3,7 @@ package ir.sobhaneh.host;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class WorkspaceManager {
+public class HostSideWorkspaceManager {
     private final ConcurrentHashMap<Integer, Workspace> workspaces = new ConcurrentHashMap<>();
     public String handleCreateWorkspace(int port, long userId){
         if(workspaces.containsKey(port)){
