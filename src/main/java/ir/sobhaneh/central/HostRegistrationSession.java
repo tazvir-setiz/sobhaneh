@@ -11,6 +11,9 @@ import java.net.Socket;
 
 public class HostRegistrationSession {
     private static final String RESPONSE_OK = "OK";
+    private static final String ERROR_NO_PENDING = "ERROR No pending create-host request";
+    private static final String ERROR_SEND_FAILED = "ERROR Could not connect to host port for verification";
+    private static final String ERROR_INVALID_CODE = "ERROR Invalid code";
 
     private final HostManager hostManager;
     private final VerificationService verificationService;
@@ -38,15 +41,12 @@ public class HostRegistrationSession {
 
     public void handleCheck(Connection connection, Socket ownerSocket) throws IOException {
         if (pendingHost == null) {
-            connection.sendLine("ERROR No pending create-host request");
+            connection.sendLine(ERROR_NO_PENDING);
             return;
         }
 
-        String code = verificationService.generateCode();
-        boolean sent = verificationService.sendCode(pendingHost.getIp(), pendingPort, code);
-        if (!sent) {
-            connection.sendLine("ERROR Could not connect to host port for verification");
-            cancel();
+        String expectedCode = sendVerificationCode(connection);
+        if (expectedCode == null) {
             return;
         }
 
@@ -56,15 +56,32 @@ public class HostRegistrationSession {
             return;
         }
 
-        if (code.equals(receivedCode.trim())) {
-            pendingHost.setSocket(ownerSocket);
-            hostManager.confirm(pendingHost);
-            connection.sendLine(RESPONSE_OK);
-            clearPending();
-        } else {
-            connection.sendLine("ERROR Invalid code");
+        finalizeVerification(connection, ownerSocket, expectedCode, receivedCode.trim());
+    }
+
+    private String sendVerificationCode(Connection connection) throws IOException {
+        String code = verificationService.generateCode();
+        boolean sent = verificationService.sendCode(pendingHost.getIp(), pendingPort, code);
+        if (!sent) {
+            connection.sendLine(ERROR_SEND_FAILED);
             cancel();
+            return null;
         }
+        return code;
+    }
+
+    private void finalizeVerification(Connection connection, Socket ownerSocket,
+                                      String expectedCode, String receivedCode) throws IOException {
+        if (!expectedCode.equals(receivedCode)) {
+            connection.sendLine(ERROR_INVALID_CODE);
+            cancel();
+            return;
+        }
+
+        pendingHost.setSocket(ownerSocket);
+        hostManager.confirm(pendingHost);
+        connection.sendLine(RESPONSE_OK);
+        clearPending();
     }
 
     /** در صورت قطع اتصال یا خطا، رزرو معلق را آزاد می‌کند. باید در finally صدا زده شود. */
