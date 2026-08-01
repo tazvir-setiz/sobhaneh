@@ -33,14 +33,27 @@ public class HostCommandHandler {
             default -> centralConnection.sendLine("ERROR Unknown command");
         }
     }
+
     private void dispatchCreateWorkspace(String[] parts) throws IOException {
         if (parts.length == 0 || parts[0].isEmpty()) {
             return;
         }
-        int port = Integer.parseInt(parts[1]);
-        Long userId = Long.parseLong(parts[2]);
+        int port;
+        try {
+            port = Integer.parseInt(parts[1]);
+        }catch (NumberFormatException e) {
+            centralConnection.sendLine("ERROR Invalid port number");
+            return;
+        }
+        Long userId;
+        try {
+            userId = Long.parseLong(parts[2]);
+        }catch (NumberFormatException e) {
+            centralConnection.sendLine("ERROR Invalid user id");
+            return;
+        }
         centralConnection.sendLine(workspaceManager.handleCreateWorkspace(port, userId));
     }
 
 
-    }
+}
