@@ -3,6 +3,8 @@
 
 package ir.sobhaneh.central;
 
+import ir.sobhaneh.central.models.Token;
+import ir.sobhaneh.central.models.WorkspaceInfo;
 import ir.sobhaneh.common.Connection;
 
 import java.io.IOException;
@@ -13,12 +15,14 @@ public class ClientHandler implements Runnable {
     private static final VerificationService verificationService = new VerificationService();
     private static final UserManager userManager = new UserManager();
     private static final WorkspaceManager workspaceManager = new WorkspaceManager();
+    private static final TokenManager tokenManager = new TokenManager();
 
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
     private static final String COMMAND_REGISTER = "register";
     private static final String COMMAND_LOGIN = "login";
     private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
+    private static final String COMMAND_CONNECT_WORKSPACE = "connect-workspace";
 
     private static final String ERROR_NOT_LOGGED_IN = "ERROR Not logged in";
     private static final String ERROR_UNKNOWN_COMMAND = "ERROR Unknown command";
@@ -60,6 +64,7 @@ public class ClientHandler implements Runnable {
             case COMMAND_REGISTER -> dispatchRegister(connection, parts);
             case COMMAND_LOGIN -> dispatchLogin(connection, parts);
             case COMMAND_CREATE_WORKSPACE -> dispatchCreateWorkspace(connection, parts);
+            case COMMAND_CONNECT_WORKSPACE -> dispatchConnectWorkspace(connection, parts);
             default -> connection.sendLine(ERROR_UNKNOWN_COMMAND);
         }
     }
@@ -102,7 +107,21 @@ public class ClientHandler implements Runnable {
             connection.sendLine(ERROR_NOT_LOGGED_IN);
             return;
         }
-        connection.sendLine(createWorkspace(parts[1]));
+        String createWorkspaceResult = workspaceManager.createWorkspace(parts[1], loggedInUserId, hostManager.getRegisteredHosts());
+        connection.sendLine(createWorkspaceResult);
+    }
+
+    private String dispatchConnectWorkspace(Connection connection, String[] parts) throws IOException {
+        if(loggedInUserId == null) {
+            return "ERROR Not logged in";
+        }
+        String workspaceName = parts[1];
+        WorkspaceInfo workspace = workspaceManager.findByName(workspaceName);
+        if(workspace == null){
+            return "ERROR workspace not found";
+        }
+        Token newToken = tokenManager.createToken(loggedInUserId,  workspaceName);
+        return "OK " + workspace.hostIp() + " " + workspace.port() + " " + newToken.token();
     }
 
 
@@ -116,10 +135,6 @@ public class ClientHandler implements Runnable {
             loggedInUserId = userManager.findByPhone(phoneNumber).getId();
         }
         return result;
-    }
-
-    private String createWorkspace(String workspaceName) throws IOException {
-        return workspaceManager.createWorkspace(workspaceName, loggedInUserId, hostManager.getRegisteredHosts());
     }
 
     private Integer parseIntOrSendError(Connection connection, String value, String errorMessage) throws IOException {

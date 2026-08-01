@@ -20,6 +20,11 @@ public class TokenManager {
         return token.toString();
     }
 
+    public Token findByToken(String token) {
+        return tokens.get(token);
+    }
+
+
     public Token createToken(long creatorUserId, String workspaceName) {
         Token newToken = new Token(tokenGenerator(), creatorUserId, workspaceName, System.currentTimeMillis() + TOKEN_EXPIRATION_MILLISECONDS);
         tokens.put(newToken.token(), newToken);
