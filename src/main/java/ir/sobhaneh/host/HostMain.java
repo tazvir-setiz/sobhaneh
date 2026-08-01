@@ -11,6 +11,7 @@ import java.net.Socket;
 public class HostMain {
     private static final String CENTRAL_SERVER_IP = "localhost";
     private static final int CENTRAL_SERVER_PORT = 8000;
+    private static final WorkspaceManager workspaceManager = new WorkspaceManager();
 
     public static void main(String[] args) {
         HostConfig config = new HostConfig("127.0.0.1", 10000, 10500);
@@ -23,7 +24,8 @@ public class HostMain {
 
             if (success) {
                 System.out.println("SUCCESS: Host registered correctly.");
-                keepConnectionAlive(centralConnection);
+                HostCommandHandler hostCommandHandler = new HostCommandHandler(centralConnection, workspaceManager);
+                hostCommandHandler.listen();
             } else {
                 System.out.println("FAILED: Host registration failed.");
             }
@@ -33,12 +35,4 @@ public class HostMain {
         }
     }
 
-    /** اتصال باز می‌ماند تا سرور مرکزی بعداً بتواند دستوراتی مثل create-workspace بفرستد. */
-    private static void keepConnectionAlive(Connection centralConnection) throws IOException {
-        String line;
-        while ((line = centralConnection.readLine()) != null) {
-            System.out.println("Command from central: " + line);
-        }
-        System.out.println("Connection to central server closed.");
-    }
 }
