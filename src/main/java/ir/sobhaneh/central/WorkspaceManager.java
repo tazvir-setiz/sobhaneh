@@ -35,6 +35,10 @@ public class WorkspaceManager {
         return null;
     }
 
+    public WorkspaceInfo findByName(String name) {
+        return workspaces.get(name);
+    }
+
     public String createWorkspace(String name, long creatorUserId, List<HostInfo> registeredHosts) throws IOException {
         HostPortReservation reservation;
         String validationResult = validateWorkspaceName(name);
