@@ -27,4 +27,5 @@ public class Workspace {
             }
         }
     }
+    public record WorkspaceDate4Token(String hostIp, int workSpacePort){}
 }
