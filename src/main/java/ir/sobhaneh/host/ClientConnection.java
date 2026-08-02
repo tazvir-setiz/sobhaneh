@@ -28,6 +28,9 @@ public class ClientConnection implements Runnable {
                 return;
             }
             String username = resolveUsername(userId);
+            if (username == null) {
+                return;
+            }
             UserSession session = new UserSession(connection, userId, username);
             workspace.addSession(session);
         }catch (IOException e){

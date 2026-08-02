@@ -11,7 +11,6 @@ import java.net.Socket;
 public class HostMain {
     private static final String CENTRAL_SERVER_IP = "localhost";
     private static final int CENTRAL_SERVER_PORT = 8000;
-    private static final HostSideWorkspaceManager HOST_SIDE_WORKSPACE_MANAGER = new HostSideWorkspaceManager();
 
     public static void main(String[] args) {
         HostConfig config = new HostConfig("127.0.0.1", 10000, 10500);
@@ -24,7 +23,10 @@ public class HostMain {
 
             if (success) {
                 System.out.println("SUCCESS: Host registered correctly.");
-                HostCommandHandler hostCommandHandler = new HostCommandHandler(centralConnection, HOST_SIDE_WORKSPACE_MANAGER);
+                HostSideWorkspaceManager hostSideWorkspaceManager =
+                        new HostSideWorkspaceManager(centralConnection);
+                HostCommandHandler hostCommandHandler =
+                        new HostCommandHandler(centralConnection, hostSideWorkspaceManager);
                 hostCommandHandler.listen();
             } else {
                 System.out.println("FAILED: Host registration failed.");
