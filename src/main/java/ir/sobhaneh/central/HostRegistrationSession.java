@@ -56,8 +56,7 @@ public class HostRegistrationSession {
             return false;
         }
 
-        finalizeVerification(connection, ownerSocket, expectedCode, receivedCode.trim());
-        return true;
+        return finalizeVerification(connection, ownerSocket, expectedCode, receivedCode.trim());
     }
 
     private String sendVerificationCode(Connection connection) throws IOException {
@@ -71,18 +70,19 @@ public class HostRegistrationSession {
         return code;
     }
 
-    private void finalizeVerification(Connection connection, Socket ownerSocket,
+    private boolean finalizeVerification(Connection connection, Socket ownerSocket,
                                       String expectedCode, String receivedCode) throws IOException {
         if (!expectedCode.equals(receivedCode)) {
             connection.sendLine(ERROR_INVALID_CODE);
             cancel();
-            return;
+            return false;
         }
 
         pendingHost.setConnection(connection);
         hostManager.confirm(pendingHost);
         connection.sendLine(RESPONSE_OK);
         clearPending();
+        return true;
     }
 
     /** در صورت قطع اتصال یا خطا، رزرو معلق را آزاد می‌کند. باید در finally صدا زده شود. */
