@@ -60,6 +60,7 @@ public class CommandParser {
     }
 
     public String getCommand() {
+
         return command;
     }
 
@@ -70,4 +71,6 @@ public class CommandParser {
     public String getJson() {
         return json;
     }
+
+    f
 }
