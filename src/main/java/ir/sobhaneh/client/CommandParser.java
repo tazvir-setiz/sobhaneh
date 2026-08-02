@@ -71,6 +71,4 @@ public class CommandParser {
     public String getJson() {
         return json;
     }
-
-    fl//TODO fix this line
 }

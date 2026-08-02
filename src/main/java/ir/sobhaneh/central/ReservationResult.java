@@ -4,7 +4,9 @@
 package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.HostInfo;
+import lombok.Getter;
 
+@Getter
 public class ReservationResult {
     private final boolean success;
     private final String errorMessage;
@@ -26,19 +28,4 @@ public class ReservationResult {
         return new ReservationResult(false, errorMessage, null, -1);
     }
 
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public HostInfo getHostInfo() {
-        return hostInfo;
-    }
-
-    public int getPort() {
-        return port;
-    }
 }
