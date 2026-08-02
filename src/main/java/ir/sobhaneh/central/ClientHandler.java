@@ -1,6 +1,3 @@
-//in the name of ALLAH
-//YA MAHDI
-
 package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.Token;
@@ -35,6 +32,7 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket) {
         this.socket = socket;
         this.session = new HostRegistrationSession(hostManager, verificationService, tokenManager);
+        System.out.println("[ClientHandler] New connection from " + socket.getRemoteSocketAddress());
     }
 
     @Override
@@ -44,15 +42,17 @@ public class ClientHandler implements Runnable {
             connection = new Connection(socket);
             String line;
             while ((line = connection.readLine()) != null) {
-                System.out.println("Received: " + line);
+                System.out.println("[ClientHandler] Received from " + socket.getRemoteSocketAddress() + ": " + line);
                 boolean stopReading = dispatch(connection, line);
                 if (stopReading) {
+                    System.out.println("[ClientHandler] Closing connection (stopReading) for " + socket.getRemoteSocketAddress());
                     return;
                 }
             }
+            System.out.println("[ClientHandler] Connection closed by peer: " + socket.getRemoteSocketAddress());
             connection.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("[ClientHandler] IOException for " + socket.getRemoteSocketAddress() + ": " + e.getMessage());
             if (connection != null) {
                 try {
                     connection.close();
@@ -79,7 +79,10 @@ public class ClientHandler implements Runnable {
             case COMMAND_LOGIN -> dispatchLogin(connection, parts);
             case COMMAND_CREATE_WORKSPACE -> dispatchCreateWorkspace(connection, parts);
             case COMMAND_CONNECT_WORKSPACE -> dispatchConnectWorkspace(connection, parts);
-            default -> connection.sendLine(ERROR_UNKNOWN_COMMAND);
+            default -> {
+                System.out.println("[ClientHandler] Unknown command: " + parts[0]);
+                connection.sendLine(ERROR_UNKNOWN_COMMAND);
+            }
         }
         return false;
     }
@@ -94,6 +97,7 @@ public class ClientHandler implements Runnable {
         Integer endPort = parseIntOrSendError(connection, parts[3], "ERROR Ports must be numbers");
         if (endPort == null) return;
 
+        System.out.println("[ClientHandler] create-host ip=" + parts[1] + " range=[" + startPort + "," + endPort + "]");
         session.handleCreateHost(connection, parts[1], startPort, endPort);
     }
 
@@ -102,7 +106,9 @@ public class ClientHandler implements Runnable {
             connection.sendLine("ERROR Usage: register <phoneNumber> <password>");
             return;
         }
-        connection.sendLine(registerUser(parts[1], parts[2]));
+        String result = registerUser(parts[1], parts[2]);
+        System.out.println("[ClientHandler] register phone=" + parts[1] + " -> " + result);
+        connection.sendLine(result);
     }
 
     private void dispatchLogin(Connection connection, String[] parts) throws IOException {
@@ -110,7 +116,10 @@ public class ClientHandler implements Runnable {
             connection.sendLine("ERROR Usage: login <phoneNumber> <password>");
             return;
         }
-        connection.sendLine(loginUser(parts[1], parts[2]));
+        String result = loginUser(parts[1], parts[2]);
+        System.out.println("[ClientHandler] login phone=" + parts[1] + " -> " + result
+                + (loggedInUserId != null ? " (userId=" + loggedInUserId + ")" : ""));
+        connection.sendLine(result);
     }
 
     private void dispatchCreateWorkspace(Connection connection, String[] parts) throws IOException {
@@ -119,10 +128,13 @@ public class ClientHandler implements Runnable {
             return;
         }
         if (loggedInUserId == null) {
+            System.out.println("[ClientHandler] create-workspace rejected: not logged in");
             connection.sendLine(ERROR_NOT_LOGGED_IN);
             return;
         }
+        System.out.println("[ClientHandler] create-workspace name=" + parts[1] + " userId=" + loggedInUserId);
         String createWorkspaceResult = workspaceManager.createWorkspace(parts[1], loggedInUserId, hostManager.getRegisteredHosts());
+        System.out.println("[ClientHandler] create-workspace result: " + createWorkspaceResult);
         connection.sendLine(createWorkspaceResult);
     }
 
@@ -132,16 +144,21 @@ public class ClientHandler implements Runnable {
             return;
         }
         if (loggedInUserId == null) {
+            System.out.println("[ClientHandler] connect-workspace rejected: not logged in");
             connection.sendLine("ERROR Not logged in");
             return;
         }
         String workspaceName = parts[1];
         WorkspaceInfo workspace = workspaceManager.findByName(workspaceName);
         if (workspace == null) {
+            System.out.println("[ClientHandler] connect-workspace: workspace not found: " + workspaceName);
             connection.sendLine("ERROR workspace not found");
             return;
         }
         Token newToken = tokenManager.createToken(loggedInUserId, workspaceName);
+        System.out.println("[ClientHandler] connect-workspace name=" + workspaceName
+                + " userId=" + loggedInUserId + " -> token=" + newToken.token()
+                + " host=" + workspace.hostIp() + ":" + workspace.port());
         connection.sendLine("OK " + workspace.hostIp() + " " + workspace.port() + " " + newToken.token());
     }
 
@@ -161,6 +178,7 @@ public class ClientHandler implements Runnable {
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException e) {
+            System.out.println("[ClientHandler] Failed to parse int '" + value + "'");
             connection.sendLine(errorMessage);
             return null;
         }

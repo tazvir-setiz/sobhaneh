@@ -32,8 +32,9 @@ public class ClientConnection implements Runnable {
             }
             UserSession session = new UserSession(connection, userId, username);
             workspace.addSession(session);
+            System.out.println("[ClientConnection] Session established: userId=" + userId + " username=" + username);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("[ClientConnection] IOException: " + e.getMessage());
         }
     }
 
@@ -50,16 +51,20 @@ public class ClientConnection implements Runnable {
             return -1;
         }
         String token = parts[1];
+        System.out.println("[ClientConnection] authenticate with token=" + token);
 
         String response = centralConnectionListener.sendAndWait("whois " + token);
 
         if (response == null || !response.startsWith("OK ")) {
+            System.out.println("[ClientConnection] whois failed for token=" + token + " response=" + response);
             connection.sendLine("ERROR Invalid or expired token");
             return -1;
         }
 
         try {
-            return Long.parseLong(response.split("\\s+")[1]);
+            long userId = Long.parseLong(response.split("\\s+")[1]);
+            System.out.println("[ClientConnection] authenticated userId=" + userId);
+            return userId;
         } catch (NumberFormatException e) {
             connection.sendLine("ERROR Invalid user id from central");
             return -1;

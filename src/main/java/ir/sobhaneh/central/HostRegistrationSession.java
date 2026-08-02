@@ -29,15 +29,18 @@ public class HostRegistrationSession {
     }
 
     public void handleCreateHost(Connection connection, String ip, int startPort, int endPort) throws IOException {
+        System.out.println("[HostRegistrationSession] handleCreateHost ip=" + ip + " range=[" + startPort + "," + endPort + "]");
         ReservationResult result = hostManager.reserve(ip, startPort, endPort);
 
         if (!result.isSuccess()) {
+            System.out.println("[HostRegistrationSession] reserve failed: " + result.getErrorMessage());
             connection.sendLine(result.getErrorMessage());
             return;
         }
 
         pendingHost = result.getHostInfo();
         pendingPort = result.getPort();
+        System.out.println("[HostRegistrationSession] reserved port=" + pendingPort);
         connection.sendLine(RESPONSE_OK + " " + pendingPort);
     }
 
@@ -78,7 +81,7 @@ public class HostRegistrationSession {
             cancel();
             return false;
         }
-
+        System.out.println("[HostRegistrationSession] Host verified and confirmed: " + pendingHost.getIp());
         HostConnectionListener listener = new HostConnectionListener(connection, tokenManager);
         pendingHost.setConnectionListener(listener);
         hostManager.confirm(pendingHost);
@@ -92,9 +95,9 @@ public class HostRegistrationSession {
         return true;
     }
 
-    /** در صورت قطع اتصال یا خطا، رزرو معلق را آزاد می‌کند. باید در finally صدا زده شود. */
     public void cancel() {
         if (pendingHost != null) {
+            System.out.println("[HostRegistrationSession] Cancelling pending host reservation: " + pendingHost.getIp());
             hostManager.cancel(pendingHost);
         }
         clearPending();

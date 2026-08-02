@@ -53,6 +53,7 @@ public class CentralConnectionListener implements Runnable {
     }
 
     private void dispatchCreateWorkspace(String line) throws IOException {
+        System.out.println("[CentralConnectionListener] Received create-workspace: " + line);
         String[] parts = line.split("\\s+");
         int port;
         try {
@@ -68,19 +69,24 @@ public class CentralConnectionListener implements Runnable {
             centralConnection.sendLine("ERROR Invalid user id");
             return;
         }
-        centralConnection.sendLine(hostSideWorkspaceManager.handleCreateWorkspace(port, userId));
+        String result = hostSideWorkspaceManager.handleCreateWorkspace(port, userId);
+        System.out.println("[CentralConnectionListener] create-workspace port=" + port + " userId=" + userId + " -> " + result);
+        centralConnection.sendLine(result);
     }
-
 
     public String sendAndWait(String command) throws IOException {
         synchronized (writeLock) {
+            System.out.println("[CentralConnectionListener] Sending to central: " + command);
             centralConnection.sendLine(command);
             try {
-                return pendingResponses.take();
+                String response = pendingResponses.take();
+                System.out.println("[CentralConnectionListener] Response from central: " + response);
+                return response;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IOException("Interrupted while waiting for central response", e);
             }
         }
     }
+
 }

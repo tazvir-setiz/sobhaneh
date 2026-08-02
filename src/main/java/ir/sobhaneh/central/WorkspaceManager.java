@@ -16,12 +16,10 @@ public class WorkspaceManager {
     private static final String ERROR_ALREADY_EXISTS = "ERROR Workspace already exists";
     private static final String ERROR_NO_HOST = "ERROR No available host";
     private static final String ERROR_HOST_REJECTED = "ERROR Host failed to create workspace";
-
-    private final Object createLock = new Object();
-    private final ConcurrentHashMap<String, WorkspaceInfo> workspaces = new ConcurrentHashMap<>();
-
     private static final int MAX_WORKSPACE_NAME_LENGTH = 60;
     private static final Pattern WORKSPACE_NAME_PATTERN = Pattern.compile("[A-Za-z0-9_]+");
+    private final Object createLock = new Object();
+    private final ConcurrentHashMap<String, WorkspaceInfo> workspaces = new ConcurrentHashMap<>();
 
     private static String validateWorkspaceName(String name) {
         if (name.length() > MAX_WORKSPACE_NAME_LENGTH) {
@@ -38,23 +36,29 @@ public class WorkspaceManager {
     }
 
     public String createWorkspace(String name, long creatorUserId, List<HostInfo> registeredHosts) throws IOException {
+        System.out.println("[WorkspaceManager] createWorkspace requested: name=" + name + " creatorUserId=" + creatorUserId);
         HostPortReservation reservation;
         String validationResult = validateWorkspaceName(name);
         if (validationResult != null) {
+            System.out.println("[WorkspaceManager] Name validation failed: " + validationResult);
             return validationResult;
         }
         synchronized (createLock) {
             if (workspaces.containsKey(name)) {
+                System.out.println("[WorkspaceManager] Workspace already exists: " + name);
                 return ERROR_ALREADY_EXISTS;
             }
             reservation = reserveHostAndPort(registeredHosts);
             if (reservation == null) {
+                System.out.println("[WorkspaceManager] No available host for workspace: " + name);
                 return ERROR_NO_HOST;
             }
         }
+        System.out.println("[WorkspaceManager] Reserved host=" + reservation.host().getIp() + " port=" + reservation.port());
 
         boolean confirmed = notifyHost(reservation.host(), reservation.port(), creatorUserId);
         if (!confirmed) {
+            System.out.println("[WorkspaceManager] Host rejected create-workspace on port=" + reservation.port());
             reservation.host().releasePort(reservation.port());
             return ERROR_HOST_REJECTED;
         }
@@ -62,10 +66,12 @@ public class WorkspaceManager {
         WorkspaceInfo info = buildWorkspaceInfo(name, reservation, creatorUserId);
         String conflict = registerWorkspaceIfAbsent(name, info);
         if (conflict != null) {
+            System.out.println("[WorkspaceManager] Conflict registering workspace: " + name);
             reservation.host().releasePort(reservation.port());
             return conflict;
         }
 
+        System.out.println("[WorkspaceManager] Workspace created successfully: " + name);
         return buildSuccessResponse(reservation);
     }
 
