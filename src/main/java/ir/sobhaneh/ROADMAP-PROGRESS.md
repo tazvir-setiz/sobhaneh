@@ -21,24 +21,26 @@ messenger-project/
 │   ├── ReservationResult.java           ✅
 │   ├── UserManager.java                 ✅ (نیاز به تکمیل اعتبارسنجی واقعی)
 │   ├── WorkspaceManager.java            ✅
-│   ├── TokenManager.java                🔲
-│   ├── models/HostInfo.java             ✅
+│   ├── TokenManager.java                ✅
+│   ├── HostConnectionListener.java      ✅ (جدید — روز ۳؛ رفع race condition خواندن)
+│   ├── models/HostInfo.java             ✅ (به‌روز شد — Connection → HostConnectionListener)
 │   ├── models/User.java                 ✅
 │   ├── models/WorkspaceInfo.java        ✅
-│   ├── models/Token.java                🔲
+│   ├── models/Token.java                ✅
 │   └── persistence/DataStore.java       🔲
 │
 ├── host/
-│   ├── HostMain.java                    ✅
+│   ├── HostMain.java                    ✅ (به‌روز شد — روز ۳)
 │   ├── HostRegistration.java            ✅
 │   ├── HostConfig.java                  ✅
-│   ├── WorkspaceManager.java            ✅
-│   ├── Workspace.java                   ✅ (اسکلت، بدون منطق چت — و عمداً بدون فیلد نام)
-│   ├── ClientConnection.java            🔲
+│   ├── HostSideWorkspaceManager.java    ✅ (به‌روز شد — روز ۳)
+│   ├── CentralConnectionListener.java   ✅ (جدید — روز ۳؛ معادل HostConnectionListener سمت host)
+│   ├── Workspace.java                   ✅ (اسکلت + آپدیت روز ۳؛ عمداً بدون فیلد نام)
+│   ├── ClientConnection.java            ✅ (پیاده‌شده — روز ۳)
 │   ├── ChatStore.java                   🔲
 │   ├── models/Message.java              🔲
 │   ├── models/Chat.java                 🔲
-│   ├── models/UserSession.java          🔲
+│   ├── models/UserSession.java          ✅ (پیاده‌شده — روز ۳)
 │   └── persistence/HostDataStore.java   🔲
 │
 ├── client/
@@ -51,6 +53,10 @@ messenger-project/
     ├── Connection.java                  ✅
     └── ProtocolUtils.java               🔲 (پیشنهادی)
 ```
+
+> ⚠️ فایل قدیمی `HostCommandHandler.java` (سمت host) دیگر استفاده نمی‌شود — جایش را
+> `CentralConnectionListener.java` گرفته است. می‌توانید آن را حذف کنید یا نگه دارید،
+> از هیچ‌جا صدا زده نمی‌شود.
 
 ---
 
@@ -71,15 +77,70 @@ messenger-project/
 
 ---
 
+## 🔴 اصل حیاتی جدید (کشف‌شده در روز ۳): هر سوکتِ دوطرفهٔ دائمی فقط یک خواننده دارد
+
+در پیاده‌سازی روز ۳ به یک باگ معماری جدی برخوردیم که ارزش دارد به‌عنوان یک قانون
+کلی برای بقیهٔ پروژه (روز ۴ و ۵) هم ثبت شود:
+
+**اتصال `create-host` (central ↔ host) یک سوکت TCP دائمی و دوطرفه است** — هم
+central می‌تواند رویش دستور بفرستد (`create-workspace`) و منتظر جواب بماند، هم
+host می‌تواند رویش دستور بفرستد (`whois`) و منتظر جواب بماند. این یعنی روی این
+یک سوکت، هر دو طرف گاهی نقش «فرستنده‌ی دستور و منتظرِ جواب» و گاهی نقش «گیرنده‌ی
+دستور و فرستنده‌ی جواب» را دارند.
+
+مشکل وقتی پیش می‌آید که **بیش از یک Thread همزمان `readLine()` روی همین یک سوکت
+صدا بزند**. مثلاً:
+- سمت central: هم Thread قدیمیِ `ClientHandler.run()` (که تا قبل از تأیید میزبان،
+  در حال خواندن دستورهای host بود) و هم Thread جدیدی که `WorkspaceManager` برای
+  فرستادن `create-workspace` به راه انداخته، هر دو ممکن است بخواهند از یک سوکت
+  بخوانند.
+- سمت host: هم Threadِ اصلی برنامه که مدام منتظر دستورهای central (مثل
+  `create-workspace`) است، هم Threadِ مربوط به یک `ClientConnection` که می‌خواهد
+  جواب `whois` را بخواند، هر دو ممکن است بخواهند از یک سوکت بخوانند.
+
+نتیجه: هر پاسخی که برسد، هرکدام از این Threadها زودتر برسند آن را «می‌قاپند» —
+حتی اگر آن پاسخ برای Thread دیگری بوده. این باعث می‌شود یکی از دو طرف تا ابد در
+`readLine()` گیر کند (چون پاسخش را Thread دیگری خورده) و طرف مقابل هم داده‌ای
+دریافت کند که انتظارش را نداشت.
+
+### راه‌حل: الگوی «Listener + صف پاسخ» (Response Queue Pattern)
+
+برای هر سوکت دائمی و دوطرفه، **دقیقاً یک** کلاس و **دقیقاً یک** Thread باید مالک
+`readLine()` باشد. این کلاس:
+1. در یک حلقهٔ بی‌نهایت پیوسته می‌خواند.
+2. اگر خط دریافتی یک «دستورِ initiated از طرف مقابل» باشد (چیزی که این سمت باید
+   پردازشش کند و جواب بدهد، مثل `whois` سمت central یا `create-workspace` سمت
+   host)، خودش مستقیماً پردازش می‌کند و جواب می‌فرستد.
+3. در غیر این صورت (یعنی این خط پاسخ به دستوری‌ست که خودِ این سمت قبلاً فرستاده)،
+   آن را در یک `BlockingQueue<String>` می‌گذارد.
+4. یک متد عمومی `sendAndWait(command)` دارد که هر Thread دیگری (مثلاً
+   `WorkspaceManager` یا `ClientConnection`) می‌تواند صدا بزند: این متد دستور را
+   می‌فرستد (زیر یک `synchronized`/قفل نوشتن تا دو دستور هم‌زمان قاطی نشوند) و
+   بعد `pendingResponses.take()` می‌زند تا صبر کند پاسخ از همان Threadِ خواننده
+   برسد.
+
+این پیاده‌سازی شده در:
+- **`HostConnectionListener`** (سمت central، برای هر `HostInfo`)
+- **`CentralConnectionListener`** (سمت host، یک نمونه در کل برنامهٔ host)
+
+⚠️ **یادداشت برای روز ۴ و ۵:** اگر بعداً کانال‌های دوطرفهٔ دائمی جدیدی اضافه شود
+(مثلاً بین client و workspace برای چت، جایی که هم پیام‌های `send-message` از
+کلاینت می‌رود و هم `receive-message` از سمت workspace می‌آید)، همین الگو باید
+رعایت شود: یک Thread ثابت مسئول `readLine()`، پیام‌های push‌شده مستقیم چاپ/نمایش
+داده شوند، و اگر پاسخ‌ همزمان (`sendAndWait`) هم لازم بود از صف استفاده شود.
+
+---
+
 ## ⭐ اصول کلین‌کد این پروژه
 
 1. هر تابع فقط یک کار انجام دهد (I/O، اعتبارسنجی، تغییر state، ساخت پاسخ — هرکدام جدا).
 2. متدهای `dispatchX` فقط پارس ورودی + صدا زدن یک متد دامنه + ارسال پاسخ؛ منطق واقعی در متد دامنه.
-3. لاک (`synchronized`) فقط دور بخش critical، هرگز دور I/O شبکه.
+3. لاک (`synchronized`) فقط دور بخش critical، هرگز دور I/O شبکه. (استثنا: قفل نوشتن روی سوکت مشترک در الگوی Listener بالا، چون آنجا لاک واقعاً محافظ عملیات atomic «فرستادن دستور + دریافت پاسخِ همان دستور» است، نه یک I/O دلخواه.)
 4. پارس عدد/رشتهٔ تکراری را در یک کلاس کمکی مشترک (`ProtocolUtils`) قرار دهید.
 5. متدهای placeholder را با `// TODO` مشخص کنید.
 6. رمز عبور هرگز plain-text ذخیره نشود — هش کنید.
 7. بدون Magic Number — هر عدد/رشتهٔ تکرارشونده باید یک ثابت (`static final`) با نام معنادار باشد؛ مثل طول توکن، طول کد تأیید، عمر توکن، حداکثر طول نام فضای کار.
+8. **یک سوکت دائمی و دوطرفه، یک خواننده** — هیچ‌وقت دو Thread مختلف مستقیماً روی یک `Connection` مشترک `readLine()` صدا نزنند؛ همیشه از الگوی Listener + صف پاسخ بالا استفاده کنید.
 
 ---
 
@@ -134,9 +195,15 @@ login 09123456789 123456        → OK
 login 09123456789 wrongpass     → ERROR Incorrect Password
 ```
 
+⚠️ **نکتهٔ ابزار تست (کشف‌شده در روز ۳، ولی برای همهٔ روزها صدق می‌کند):** برای
+تست دستی سوکت‌های خام، از `telnet` استفاده نکنید — برنامهٔ telnet قبل از هر چیز
+بایت‌های option-negotiation می‌فرستد که سرور آن‌ها را به‌عنوان اولین خط پروتکل
+می‌خواند و رد می‌کند. به‌جایش از **PuTTY در حالت Raw** (نه Telnet)، یا `nc`/`ncat`،
+یا یک اسکریپت کوچک PowerShell/Python با سوکت خام استفاده کنید.
+
 ---
 
-# روز ۲ — ایجاد فضای کار ✅ (تکمیل‌شده، اعتبارسنجی نام باقی‌مانده)
+# روز ۲ — ایجاد فضای کار ✅ (تکمیل‌شده)
 
 ### پروتکل (از سند)
 
@@ -152,33 +219,31 @@ login 09123456789 wrongpass     → ERROR Incorrect Password
 ### قانون نام فضای کار
 حداکثر ۶۰ کاراکتر، فقط اعداد و حروف کوچک/بزرگ انگلیسی و `_`.
 
-### چیزی که باید اضافه کنید
+### `validateWorkspaceName` ✅ پیاده‌سازی شده
 
-یک متد اعتبارسنجی جداگانه در `WorkspaceManager` (central) به نام چیزی شبیه
-`validateWorkspaceName` بسازید که:
+در `WorkspaceManager` (central) این متد پیاده شده:
 - **ورودی:** نام پیشنهادی فضای کار (رشته)
-- **خروجی:** یا `null` (یعنی معتبر است) یا یک پیام خطای آماده برای فرستادن به کلاینت
-- **منطق داخلی:** دو ثابت تعریف کنید — یکی حداکثر طول (۶۰) و یکی الگوی مجاز کاراکترها
-  (حروف بزرگ/کوچک انگلیسی، رقم، `_`). اگر طول بیشتر از حد مجاز بود یا کاراکتر
-  غیرمجاز داشت، پیام خطای مناسب را برگردانید.
-
-این متد باید **قبل از** چک تکراری‌نبودن نام، در ابتدای `createWorkspace` صدا زده شود.
+- **خروجی:** یا `null` (معتبر) یا پیام خطای آماده برای کلاینت
+- دو ثابت: `MAX_WORKSPACE_NAME_LENGTH = 60` و `WORKSPACE_NAME_PATTERN` (حروف
+  بزرگ/کوچک انگلیسی، رقم، `_`).
+- **قبل از** چک تکراری‌نبودن نام، در ابتدای `createWorkspace` صدا زده می‌شود.
 
 ⚠️ **نکتهٔ مهم دربارهٔ محل نگه‌داری نام:** نام فضای کار فقط سمت **central** (در
 `WorkspaceInfo`) نگه‌داری می‌شود. طبق پروتکل بالا (قدم ۳)، وقتی central به host
 دستور `create-workspace` می‌فرستد، فقط `port` و `userId` ارسال می‌شود — نام
 فضای کار هرگز به host فرستاده نمی‌شود. در نتیجه سمت **host** اصلاً فیلدی برای
 نام فضای کار وجود ندارد؛ `Workspace` (سمت host) فقط با `port` خودش شناخته
-می‌شود، نه با نام. این یک تصمیم عمدی است، نه نقص — به همین دلیل در جدول ساختار
-پروژه، `Workspace.java` به‌صورت «بدون فیلد نام» علامت خورده است.
+می‌شود، نه با نام. این یک تصمیم عمدی است، نه نقص.
 
-### باقی‌ماندهٔ کار
-1. اعتبارسنجی نام فضای کار (بالا).
-2. `Workspace.java` (host) الان فقط اتصال کلاینت را لاگ می‌کند؛ در روز ۳ باید این
-   اتصال را به یک هندلر واقعی (`ClientConnection`) بسپارد.
-3. تست هم‌زمانی: دو `create-workspace` با اسم یکسان از دو اتصال مختلف هم‌زمان —
-   مطمئن شوید فقط یکی موفق می‌شود (به همین دلیل ساختار داده‌ای که نام‌ها را نگه
-   می‌دارد باید thread-safe باشد).
+### 🐛 باگ کشف‌شده و رفع‌شده در `create-workspace` (مرتبط با روز ۳)
+
+هنگام پیاده‌سازی اولیهٔ `WorkspaceManager.notifyHost`، خطای `ERROR Host failed to
+create workspace` به‌طور نامنظم (intermittent) رخ می‌داد. علتش **race condition**
+در خواندن از سوکت central↔host بود (شرح کامل در بخش «اصل حیاتی جدید» بالا) —
+Thread قدیمیِ `ClientHandler.run()` که هنوز روی همان سوکت `readLine()` می‌زد،
+جواب `OK` مخصوص `notifyHost` را می‌قاپید. با معرفی `HostConnectionListener` این
+مشکل کاملاً رفع شد؛ الان `notifyHost` از `host.getConnectionListener().sendAndWait(...)`
+استفاده می‌کند.
 
 ### تست
 ```
@@ -193,7 +258,7 @@ create-workspace "bad name!"
 
 ---
 
-# روز ۳ — اتصال به فضای کار و احراز هویت
+# روز ۳ — اتصال به فضای کار و احراز هویت ✅ (تکمیل‌شده)
 
 ### پروتکل (از سند) — ۹ قدم
 
@@ -215,9 +280,10 @@ create-workspace "bad name!"
 - **توکن موقت:** ۱۰ کاراکتر، فقط از حروف کوچک انگلیسی و رقم (`a-z0-9`)، حداکثر ۵
   دقیقه عمر.
 - **whois** باید روی همان اتصال باز میان میزبان و مرکزی زده شود (همان اتصالی که از
-  `create-host` باقی مانده)، نه یک اتصال جدید.
+  `create-host` باقی مانده)، نه یک اتصال جدید. ✅ (از طریق `HostConnectionListener`/`CentralConnectionListener`)
 - **کلاینت هم‌زمان فقط به یک فضای کار وصل است** — یعنی طرف کلاینت، شیء مدیریت‌کنندهٔ
-  اتصال به فضای کار باید در هر لحظه حداکثر یک اتصال فعال داشته باشد.
+  اتصال به فضای کار باید در هر لحظه حداکثر یک اتصال فعال داشته باشد. (این بخش
+  مربوط به روز ۴، سمت client است — هنوز پیاده نشده.)
 - نکته: نیازی نیست توکن یا پاسخ `whois` نام فضای کار را هم حمل کند. چون هر
   `Workspace` (فضای کار) روی یک پورت اختصاصی خودش گوش می‌دهد، همان `Workspace`ای
   که اتصال کلاینت را می‌پذیرد (و در نتیجه `ClientConnection` را می‌سازد) از قبل
@@ -231,122 +297,183 @@ create-workspace "bad name!"
   باید پروتکل `create-workspace` بین central و host تغییر کند تا نام را هم حمل کند؛
   تا آن زمان این تصمیم عمداً به تعویق افتاده است.
 
-### فایل‌هایی که باید بسازید
+### فایل‌هایی که ساخته/تغییر داده شدند
 
 ```
-central-server/models/Token.java       🔲
-central-server/TokenManager.java       🔲
-central-server/ClientHandler.java      ✅ تغییر (دستورات جدید: connect-workspace, whois)
+central-server/models/Token.java              ✅
+central-server/TokenManager.java              ✅
+central-server/ClientHandler.java             ✅ (دستورات جدید: connect-workspace)
+central-server/HostConnectionListener.java    ✅ (جدید — رفع race condition)
+central-server/models/HostInfo.java           ✅ (به‌روز — Connection → HostConnectionListener)
+central-server/HostRegistrationSession.java   ✅ (به‌روز — می‌سازد و اجرا می‌کند HostConnectionListener را)
+central-server/WorkspaceManager.java          ✅ (به‌روز — notifyHost از sendAndWait استفاده می‌کند)
 
-host/ClientConnection.java             🔲
-host/models/UserSession.java           🔲
-host/Workspace.java                    ✅ تغییر (قبول اتصال کلاینت و ارجاع به ClientConnection)
+host/ClientConnection.java                    ✅ (پیاده‌شده)
+host/models/UserSession.java                  ✅ (پیاده‌شده)
+host/Workspace.java                           ✅ (پذیرش اتصال کلاینت + ارجاع به ClientConnection)
+host/CentralConnectionListener.java           ✅ (جدید — معادل host-side، رفع race condition)
+host/HostMain.java                            ✅ (به‌روز — از CentralConnectionListener استفاده می‌کند)
+host/HostSideWorkspaceManager.java            ✅ (به‌روز — centralConnectionListener را نگه می‌دارد)
 ```
 
 ### مشخصات کلاس‌ها و متدها
 
-**`Token` (central/models)**
-- اتریبیوت‌ها: مقدار توکن (رشته)، شناسهٔ کاربر مالک آن، زمان انقضا (long، برحسب میلی‌ثانیه).
-  (نیازی به نگه‌داشتن نام فضای کار نیست — طبق توضیح بالا، پورت خودش این تمایز را
-  می‌دهد.)
-- متد: چیزی مثل `isExpired()` که با مقایسهٔ زمان فعلی سیستم با زمان انقضا، `true`/`false`
+**`Token` (central/models)** ✅
+- اتریبیوت‌ها: مقدار توکن (رشته)، شناسهٔ کاربر مالک آن، نام فضای کار (اضافه بر
+  حداقل مورد نیاز، برای دیباگ نگه داشته شده)، زمان انقضا (long، برحسب میلی‌ثانیه).
+- متد: `isExpired()` که با مقایسهٔ زمان فعلی سیستم با زمان انقضا، `true`/`false`
   برمی‌گرداند.
 
-**`TokenManager` (central)**
-- اتریبیوت: یک نگاشت (map) thread-safe از مقدار توکن به شیء `Token` (چون چند
-  اتصال هم‌زمان ممکن است توکن بسازند/بخوانند).
-- ثابت‌ها: طول توکن (۱۰)، عمر توکن (۵ دقیقه به میلی‌ثانیه)، الفبای مجاز کاراکترها.
-- متد ساخت توکن: ورودی شناسهٔ کاربر → یک رشتهٔ تصادفی ۱۰‌کاراکتری از الفبای مجاز
-  می‌سازد، آن را در map ذخیره می‌کند، شیء `Token` را برمی‌گرداند.
-- متد resolve: ورودی مقدار توکن → اگر در map نبود یا منقضی بود `null` برگرداند، وگرنه
-  شناسهٔ کاربر مربوطه را برگرداند.
-  ⚠️ **نکتهٔ ایمنی:** قبل از چک `isExpired()`، حتماً باید مقدار خوانده‌شده از map
-  را برای `null` بودن چک کنید — اگر توکن اصلاً وجود نداشته باشد، `findByToken`
-  مقدار `null` برمی‌گرداند و صدا زدن `isExpired()` روی `null` باعث
-  `NullPointerException` می‌شود.
-- (اختیاری، نه ضروری برای این فاز) یک مکانیزم پاکسازی دوره‌ای توکن‌های منقضی —
-  می‌توانید نادیده بگیرید و به عنوان نشتی حافظهٔ قابل قبول برای این فاز در نظر بگیرید.
+**`TokenManager` (central)** ✅
+- اتریبیوت: `ConcurrentHashMap<String, Token>` — نگاشت thread-safe از مقدار توکن
+  به شیء `Token`.
+- ثابت‌ها: `MAX_TOKEN_LENGTH = 10`، `TOKEN_EXPIRATION_MILLISECONDS = 5 * 60 * 1000`.
+- `createToken(creatorUserId, workspaceName)`: یک رشتهٔ تصادفی ۱۰‌کاراکتری از
+  الفبای مجاز می‌سازد، در map ذخیره می‌کند، شیء `Token` را برمی‌گرداند.
+- `resolve(token)`: ابتدا با `findByToken` مقدار را می‌خواند و برای `null` بودن
+  چک می‌کند (⚠️ نکتهٔ ایمنی رعایت‌شده — قبل از `isExpired()` چک null انجام
+  می‌شود تا `NullPointerException` رخ ندهد)، اگر منقضی بود حذف و `null` برمی‌گرداند.
+- پاکسازی دورهٔ توکن‌های منقضی: هنوز اضافه نشده (نشتی حافظهٔ قابل قبول برای این فاز).
 
-**دستورات جدید در `ClientHandler` (central)**
+**دستورات جدید در `ClientHandler` (central)** ✅
 
-باید دو دستور جدید dispatch شوند:
+- `connect-workspace <name>`: چک لاگین‌بودن روی همین اتصال → پیدا کردن فضای کار
+  با `workspaceManager.findByName(name)` → اگر پیدا نشد `ERROR workspace not
+  found` → اگر پیدا شد، `tokenManager.createToken` و پاسخ با فرمت
+  `OK <ip> <port> <token>`.
+- `whois <token>`: 🔁 **تغییر معماری نسبت به طرح اولیه** — دیگر در `ClientHandler`
+  پیاده نیست (چون `whois` یک دستور host-initiated روی کانال دائمی central↔host
+  است، نه چیزی که یک کلاینت معمولی از طریق `ClientHandler` بفرستد). به‌جایش
+  مستقیماً داخل `HostConnectionListener.handleWhois` پردازش می‌شود — همان
+  Threadی که مالک خواندن از سوکت host است. این تغییر دقیقاً همان چیزی‌ست که در
+  بخش «اصل حیاتی جدید» بالا توضیح داده شد.
 
-- `connect-workspace <name>`: باید بررسی شود کاربر لاگین کرده (روی همین اتصال).
-  سپس فضای کار با آن نام را از `WorkspaceManager` پیدا کنید (برای این کار یک متد
-  `find(name)` سادهٔ خواندنی به `WorkspaceManager` اضافه کنید که فقط نگاشت داخلی را
-  می‌خواند). اگر پیدا نشد پیام خطا. اگر پیدا شد، از `TokenManager` یک توکن جدید
-  برای این کاربر بسازید و پاسخ را با فرمت `OK <ip> <port> <token>` بفرستید.
-- `whois <token>`: مقدار توکن را از `TokenManager` resolve کنید. اگر نامعتبر/منقضی
-  بود خطا، وگرنه `OK <userId>` برگردانید.
+**`UserSession` (host/models)** ✅
+- اتریبیوت‌ها (هر سه `final`، به‌صورت `record`): `Connection connection`،
+  `long userId`، `String username`.
+- immutable — طبق پیشنهاد، ساخت `UserSession` در `ClientConnection` بعد از هر دو
+  مرحلهٔ `authenticate` و `resolveUsername` انجام می‌شود.
 
-**`UserSession` (host/models)**
-- اتریبیوت‌ها: شناسهٔ کاربر، نام کاربری (این دو مقدار فقط برای عمر همین اتصال به
-  فضای کار معنا دارند)، و ارجاع به شیء اتصال (`Connection`) مربوط به همین کاربر —
-  چون بعداً برای فرستادن پیام به این کاربر لازم است.
-- پیشنهاد: این کلاس را immutable نگه دارید (هر سه فیلد `final`، فقط سازنده و
-  getterها). یعنی `userId` و `username` باید هر دو از قبل مشخص باشند تا شیء
-  ساخته شود — پس در `ClientConnection`، ساخت `UserSession` باید بعد از هر دو
-  مرحلهٔ authenticate و resolveUsername انجام شود (نه قبل از آن)، نه این‌که
-  ابتدا با `username` خالی ساخته و بعداً با setter تغییر داده شود.
+**`ClientConnection` (host)** ✅ — سه مرحلهٔ جدا پیاده شده:
 
-**`ClientConnection` (host)**
+1. **`authenticate()`:** خط اول را می‌خواند، فرمت `connect <token>` را چک
+   می‌کند. سپس به‌جای خواندن/نوشتن مستقیم روی `centralConnection`، از
+   `centralConnectionListener.sendAndWait("whois " + token)` استفاده می‌کند —
+   این متد خودش داخلی synchronized است و پاسخ را از صف مشترک می‌گیرد، بدون
+   رقابت با Thread اصلی که دستورهای central-initiated (مثل `create-workspace`)
+   را می‌خواند.
+2. **`resolveUsername(userId)`:** از `workspace.findExistingUsername(userId)`
+   می‌پرسد؛ اگر بود همان را برمی‌گرداند؛ وگرنه `username?` می‌فرستد و پاسخ کلاینت
+   را می‌خواند.
+3. **ثبت session:** `UserSession` ساخته و `workspace.addSession(session)` صدا
+   زده می‌شود. (بخش «شروع گوش دادن به دستورات بعدی» هنوز باقی مانده — روز ۵.)
 
-این کلاس، هندلر یک اتصال کلاینت به فضای کار است و باید سه مرحله را جدا از هم
-پیاده کند (طبق قانون تک‌مسئولیتی):
-
-1. **احراز هویت (authenticate):** خط اول را می‌خواند، باید فرمت `connect <token>`
-   باشد. سپس از میزبان به مرکزی یک `whois` می‌زند (روی اتصال باز میزبان-مرکزی) و
-   جواب را پارس می‌کند. چون این `ClientConnection` خودش متعلق به یک `Workspace`
-   مشخص است (همانی که این اتصال را پذیرفته، روی همان پورت)، لازم نیست هویت فضای
-   کار جداگانه چک شود — فقط کافی است شناسهٔ کاربر از `whois` معتبر باشد.
-   ⚠️ **نکتهٔ همزمانی:** اتصال میزبان-مرکزی (`centralConnection`) بین همهٔ
-   `ClientConnection`های این میزبان مشترک است. اگر چند کلاینت هم‌زمان `whois`
-   بفرستند، ممکن است پاسخ‌ها با هم قاطی شوند (یک کلاینت پاسخ کلاینت دیگر را
-   بخواند). فرستادن دستور `whois` و خواندن بلافاصلهٔ پاسخش باید به‌صورت atomic
-   (مثلاً با `synchronized` روی یک قفل مشترک) انجام شود.
-2. **گرفتن نام کاربری (resolveUsername):** ابتدا از `Workspace` می‌پرسد آیا این
-   کاربر قبلاً (در همین اجرای برنامه) نام کاربری‌ای در این فضای کار ثبت کرده — اگر
-   بله همان را استفاده می‌کند؛ اگر نه، `username?` می‌فرستد، پاسخ کلاینت را
-   می‌خواند و به عنوان نام کاربری ثبت می‌کند.
-3. **ثبت session و شروع گوش دادن به دستورات بعدی** (این بخش را در روز ۵ کامل
-   می‌کنید).
-
-**تغییرات `Workspace` (host)**
-- 🔴 **به‌روزرسانی:** برخلاف نسخهٔ اولیهٔ این بند، تصمیم نهایی این است که فیلد
-  «نام فضای کار» به این کلاس اضافه **نمی‌شود**. `Workspace` بدون نام باقی
-  می‌ماند و همیشه فقط با `port` شناسایی می‌شود (دلیل کامل در بخش «نکات مهم»
-  بالای همین روز آمده است). این بند برای فاز بعدی (اگر روزی پروتکل
-  `create-workspace` عوض شد تا نام را هم حمل کند) به‌عنوان یادداشت نگه داشته
-  شده، نه برای پیاده‌سازی فعلی.
-- دو نگاشت thread-safe اضافه کنید: یکی از شناسهٔ کاربر به `UserSession` آنلاین،
-  یکی از نام کاربری به شناسهٔ کاربر.
-- متد پیدا کردن نام کاربری قبلی یک کاربر (برای استفاده در `resolveUsername`).
-- متد افزودن یک session جدید به نگاشت‌های بالا.
-- یک ارجاع به `centralConnection` (اتصال باز میزبان-مرکزی) نگه دارید و آن را در
-  اختیار هر `ClientConnection` که می‌سازید بگذارید، تا بتوانند `whois` بزنند.
+**`Workspace` (host)** ✅ به‌روز شده
+- فیلد نام اضافه **نشد** (طبق تصمیم نهایی — یادداشت کامل در بخش زیر).
+- دو `ConcurrentHashMap` دارد: `onlineSessionsByUserId` (userId → UserSession) و
+  `userIdByUsername` (username → userId).
+- `findExistingUsername(userId)`: برای استفاده در `resolveUsername`.
+- `addSession(session)`: افزودن session جدید به هر دو نگاشت.
+- 🔁 **تغییر معماری:** به‌جای نگه‌داشتن مستقیم `Connection centralConnection`،
+  الان یک ارجاع به `CentralConnectionListener centralConnectionListener` نگه
+  می‌دارد (که در `acceptLoop` به هر `ClientConnection` جدید پاس داده می‌شود) —
+  چون دیگر هیچ کلاسی غیر از خودِ `CentralConnectionListener` اجازه ندارد مستقیم
+  از سوکت central بخواند.
 
 ⚠️ توجه: این نگاشت‌ها فقط کاربران **آنلاین** را نشان می‌دهند. یکتایی واقعی نام
 کاربری در طول عمر فضای کار (نه فقط لحظهٔ آنلاین بودن) وقتی معنا پیدا می‌کند که
 `HostDataStore` (روز ۵) داده‌های ذخیره‌شده را هم در نظر بگیرد.
 
-### تست جریان کامل
+---
+
+### 🔴 به‌روزرسانی معماری: الگوی Listener + صف پاسخ (به‌جای دسترسی مستقیم به `Connection`)
+
+نسخهٔ اولیهٔ طرح روز ۳ فرض می‌کرد `HostInfo` (سمت central) و `Workspace` (سمت host)
+مستقیماً یک شیء `Connection` نگه می‌دارند و هر جا لازم بود، همان‌جا
+`sendLine`/`readLine` صدا زده می‌شود. در عمل این باعث race condition شد (شرح کامل
+در بخش «اصل حیاتی جدید» بالای همین سند). نسخهٔ نهایی به‌جای آن:
+
+**سمت central:**
+- کلاس جدید `HostConnectionListener` ساخته شد. `HostRegistrationSession` بعد از
+  تأیید موفق میزبان (`finalizeVerification`)، به‌جای `pendingHost.setConnection(connection)`،
+  یک `HostConnectionListener` می‌سازد، آن را با `Thread` (daemon) اجرا می‌کند، و
+  در `HostInfo.connectionListener` ذخیره می‌کند.
+- `WorkspaceManager.notifyHost` به‌جای خواندن/نوشتن مستقیم، فقط
+  `host.getConnectionListener().sendAndWait("create-workspace " + port + " " + userId)`
+  صدا می‌زند.
+- خود `HostConnectionListener` وقتی خط دریافتی با `whois ` شروع شود، خودش مستقیم
+  جواب می‌دهد (بدون نیاز به `ClientHandler`)؛ در غیر این صورت خط را در صف
+  می‌گذارد تا `sendAndWait` بردارد.
+
+**سمت host:**
+- کلاس جدید `CentralConnectionListener` (معادل کاملاً موازی `HostConnectionListener`)
+  ساخته شد. `HostMain` بعد از موفقیت `HostRegistration.register`، یک
+  `CentralConnectionListener` می‌سازد، آن را روی یک `Thread` اجرا می‌کند و منتظرش
+  می‌ماند (`join`).
+- `HostSideWorkspaceManager` این listener را نگه می‌دارد (چون به دلیل وابستگی
+  چرخشی بین `HostMain` و `HostSideWorkspaceManager`، از طریق یک setter بعد از
+  ساخت هر دو تزریق می‌شود) و آن را به هر `Workspace` جدید که می‌سازد پاس می‌دهد.
+- `Workspace` این listener را به هر `ClientConnection` که در `acceptLoop` می‌سازد
+  پاس می‌دهد.
+- `ClientConnection.authenticate()` به‌جای خواندن/نوشتن مستقیم روی
+  `centralConnection`، فقط `centralConnectionListener.sendAndWait("whois " + token)`
+  صدا می‌زند.
+- خود `CentralConnectionListener` وقتی خط دریافتی با `create-workspace ` شروع
+  شود، خودش پردازش می‌کند (با تفویض به `HostSideWorkspaceManager.handleCreateWorkspace`)؛
+  در غیر این صورت خط را در صف می‌گذارد.
+
+**فایل حذف‌شده/منسوخ:** `HostCommandHandler.java` (سمت host) دیگر استفاده نمی‌شود.
+
+### نکتهٔ ابزار تست: چرا `telnet` روی این مرحله جواب نمی‌داد
+
+هنگام تست دستی این مرحله با `telnet`، دستور `connect <token>` هیچ پاسخی
+برنمی‌گرداند و کلاینت هیچ‌وقت `username?` دریافت نمی‌کرد. علت این بود که `telnet`
+قبل از فرستادن هر چیزی که کاربر تایپ می‌کند، چند بایت option-negotiation
+می‌فرستد؛ سرور (`ClientConnection.authenticate`) این بایت‌ها را به‌عنوان اولین خط
+می‌خواند، چون با `"connect "` شروع نمی‌شود `ERROR Invalid connect command` برمی‌گرداند
+و آن Thread بلافاصله تمام می‌شود — پس هرچه بعداً در همان جلسهٔ telnet تایپ شود
+دیگر خوانده نمی‌شود.
+
+**راه‌حل:** برای تست دستی این‌جور سوکت‌های خام، به‌جای `telnet` از یکی از این‌ها
+استفاده کنید:
+- **PuTTY** با «Connection type» روی **Raw** (نه Telnet) تنظیم شود.
+- `nc`/`ncat` (روی ویندوز از طریق نصب Nmap در دسترس است).
+- یک اسکریپت کوچک، مثلاً در PowerShell:
+  ```powershell
+  $client = New-Object System.Net.Sockets.TcpClient("localhost", <port>)
+  $stream = $client.GetStream()
+  $writer = New-Object System.IO.StreamWriter($stream)
+  $reader = New-Object System.IO.StreamReader($stream)
+  $writer.AutoFlush = $true
+  $writer.WriteLine("connect <token>")
+  Write-Host $reader.ReadLine()
+  ```
+
+### تست جریان کامل (تأیید‌شده که کار می‌کند)
 ```
 --- اتصال اول به central ---
 login 09123456789 123456        → OK
 connect-workspace company1      → OK 127.0.0.1 10143 fkla48fhhf
 --- (این اتصال بسته می‌شود) ---
 
---- اتصال جدید به فضای کار (میزبان، پورت ۱۰۱۴۳) ---
+--- اتصال جدید به فضای کار (میزبان، پورت ۱۰۱۴۳)، با nc/PuTTY-Raw/اسکریپت (نه telnet) ---
 connect fkla48fhhf              → username?
 ahmad                            → OK
 --- این اتصال باز می‌ماند ---
+
+--- تست توکن نامعتبر ---
+connect notarealtoken123        → ERROR Invalid or expired token
+
+--- تست session تکراری با همان توکن (قبل از انقضا) ---
+--- اتصال سوم با همان token ---
+connect fkla48fhhf              → OK (مستقیم، بدون username? — چون findExistingUsername کار می‌کند)
 ```
 
 ---
 
 # روز ۴ — برنامهٔ کلاینت + پایهٔ چت
 
-هدف: به‌جای تست با telnet، یک برنامهٔ کلاینت واقعی که کل سناریوهای بالا را خودکار
+هدف: به‌جای تست با telnet/nc/PuTTY، یک برنامهٔ کلاینت واقعی که کل سناریوهای بالا را خودکار
 انجام دهد.
 
 ### نکات لازم از سند
@@ -356,6 +483,16 @@ ahmad                            → OK
 - کلاینت باید حداقل **دو Thread** داشته باشد: یکی برای خواندن پیام‌های ورودی از
   سوکت فضای کار و چاپشان روی کنسول، یکی برای خواندن دستورات کاربر از کنسول و
   ارسالشان.
+
+⚠️ **یادآوری از اصل حیاتی روز ۳:** اتصال کلاینت به فضای کار (`connect` + چت) هم
+یک سوکت دائمی و بالقوه دوطرفه است (کلاینت هم `send-message` می‌فرستد و منتظر
+`OK <seq>` می‌ماند، هم ممکن است هر لحظه `receive-message` push‌شده از سمت
+workspace دریافت کند). طراحی `WorkspaceConnection` باید از همان ابتدا این را در
+نظر بگیرد: یک Thread ثابت مسئول خواندن پیوسته از سوکت باشد که پیام‌های
+`receive-message` را مستقیم چاپ می‌کند، و برای پاسخ‌های synchronous (مثل جواب
+`send-message`) باید به همان الگوی صف پاسخ فکر کرد — نه این‌که فرض شود
+`readLine()` ساده برای هر دستور کافی‌ست، چون در این صورت همان باگ روز ۳ (قاپیدن
+پاسخ توسط Thread اشتباه) دوباره تکرار می‌شود.
 
 ### فایل‌ها
 
@@ -381,6 +518,9 @@ host/models/Chat.java               🔲
   "عملیات دلخواه" استفاده کنید.
 - `connectWorkspace` باید پاسخ `OK <ip> <port> <token>` را پارس کرده و این سه
   مقدار را به فراخواننده برگرداند (مثلاً به شکل آرایه یا یک رکورد/کلاس ساده).
+- توجه: چون این اتصال‌ها کوتاه‌عمر و تک‌درخواستی هستند (باز → دستور → جواب →
+  بسته)، نیازی به الگوی Listener/صف اینجا نیست — آن الگو فقط برای سوکت‌های
+  **دائمی و دوطرفه** لازم است.
 
 **`WorkspaceConnection` (client)**
 
@@ -422,7 +562,7 @@ host/models/Chat.java               🔲
 
 ### تست
 همهٔ دستورات `register`/`login`/`create-workspace`/`connect-workspace`/`connect`
-را از طریق کلاینت واقعی (نه telnet) اجرا کنید.
+را از طریق کلاینت واقعی (نه telnet/nc) اجرا کنید.
 
 ---
 
@@ -511,6 +651,17 @@ central-server/persistence/DataStore.java 🔲
 session از `Workspace` اجرا شود — یعنی این حذف را در یک بلوک `finally` (یا معادل
 آن) بگذارید، نه فقط داخل دستور `disconnect`.
 
+⚠️ **یادآوری از الگوی روز ۳:** حلقهٔ اصلی `ClientConnection` که در ادامهٔ همین
+روز باید نوشته شود (پردازش `send-message`/`get-chats`/... بعد از اتمام
+authenticate/resolveUsername) خودش از قبل تنها خوانندهٔ سوکت کلاینت است (چون
+هیچ Thread دیگری روی این سوکت خاص کار نمی‌کند)، پس اینجا مشکلی از نوع روز ۳
+پیش نمی‌آید. فقط برای `receive-message` که باید مستقیم روی سوکت گیرنده نوشته
+شود (`connection.sendLine(...)` از یک Thread دیگر، یعنی Thread فرستنده)، دقت
+کنید که نوشتن روی یک `Connection` از چند Thread می‌تواند خطوط را با هم قاطی کند
+اگر خود `PrintWriter` این تضمین را ندهد؛ به همین دلیل بهتر است هر `Connection`
+یک قفل نوشتن (`writeLock`) داخلی داشته باشد یا `sendLine` را `synchronized`
+کنید.
+
 **`DataStore` (central)**
 - مسیر فایل ذخیره‌سازی را به‌صورت یک ثابت تعریف کنید.
 - متد ذخیره: کل وضعیت `UserManager`، `HostManager`، `WorkspaceManager` را
@@ -568,10 +719,11 @@ shutdown → ذخیره و بسته شدن
 
 1. ✅ ثبت میزبان (create-host + check)
 2. ✅ روز ۱: `User` + `UserManager` + `register`/`login` (سخت‌سازی امنیتی باقی‌مانده)
-3. ✅ روز ۲: `WorkspaceInfo` + `WorkspaceManager` + `Workspace` + `create-workspace` (اعتبارسنجی نام باقی‌مانده)
-4. 🔲 روز ۳: `Token` + `TokenManager` + `connect-workspace` + `connect`/`whois`/`username?`
-   (نکته: در این مرحله مشخص شد که `Workspace` سمت host نام ندارد و فقط بر اساس
-   `port` شناسایی می‌شود — این تصمیم روی طراحی `HostDataStore` در روز ۵ هم اثر
-   می‌گذارد.)
+3. ✅ روز ۲: `WorkspaceInfo` + `WorkspaceManager` + `Workspace` + `create-workspace`
+4. ✅ روز ۳: `Token` + `TokenManager` + `connect-workspace` + `connect`/`whois`/`username?`
+    + کشف و رفع race condition خواندن روی سوکت‌های دائمی central↔host (هم سمت
+      central با `HostConnectionListener`، هم سمت host با `CentralConnectionListener`)
+      — این الگو («یک سوکت دائمی، یک خواننده، صف پاسخ برای sendAndWait») باید در
+      روزهای بعد هم برای هر کانال دوطرفهٔ جدید (مثلاً چت client↔workspace) رعایت شود.
 5. 🔲 روز ۴: پروژهٔ `client` + مدل‌های `Message`/`Chat`
 6. 🔲 روز ۵: چت کامل + `disconnect` + `DataStore`/`HostDataStore` + `shutdown`
