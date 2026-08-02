@@ -33,6 +33,9 @@ public class TokenManager {
 
     public Token resolve(String token) {
         Token foundToken = findByToken(token);
+        if(foundToken == null) {
+            return null;
+        }
         if(foundToken.isExpired()) {
             tokens.remove(token);
             return null;
