@@ -3,14 +3,14 @@
 
 package ir.sobhaneh.central.models;
 
-import ir.sobhaneh.common.Connection;
+import ir.sobhaneh.central.HostConnectionListener;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
 @Getter
 @Setter
 public class HostInfo {
@@ -18,7 +18,7 @@ public class HostInfo {
     private final int startPort;
     private final int endPort;
     private final List<Integer> unusedPorts;
-    private Connection connection;
+    private HostConnectionListener connectionListener;
 
     public HostInfo(String ip, int startPort, int endPort) {
         this.ip = ip;

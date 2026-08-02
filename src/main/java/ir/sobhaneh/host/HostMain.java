@@ -23,16 +23,22 @@ public class HostMain {
 
             if (success) {
                 System.out.println("SUCCESS: Host registered correctly.");
+
                 HostSideWorkspaceManager hostSideWorkspaceManager =
-                        new HostSideWorkspaceManager(centralConnection);
-                HostCommandHandler hostCommandHandler =
-                        new HostCommandHandler(centralConnection, hostSideWorkspaceManager);
-                hostCommandHandler.listen();
+                        new HostSideWorkspaceManager();
+
+                CentralConnectionListener centralConnectionListener =
+                        new CentralConnectionListener(centralConnection, hostSideWorkspaceManager);
+                hostSideWorkspaceManager.setCentralConnectionListener(centralConnectionListener);
+
+                Thread listenerThread = new Thread(centralConnectionListener);
+                listenerThread.start();
+                listenerThread.join();
             } else {
                 System.out.println("FAILED: Host registration failed.");
             }
 
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }

@@ -17,13 +17,15 @@ public class HostRegistrationSession {
 
     private final HostManager hostManager;
     private final VerificationService verificationService;
+    private final TokenManager tokenManager;
 
     private HostInfo pendingHost;
     private int pendingPort = -1;
 
-    public HostRegistrationSession(HostManager hostManager, VerificationService verificationService) {
+    public HostRegistrationSession(HostManager hostManager, VerificationService verificationService, TokenManager tokenManager) {
         this.hostManager = hostManager;
         this.verificationService = verificationService;
+        this.tokenManager = tokenManager;
     }
 
     public void handleCreateHost(Connection connection, String ip, int startPort, int endPort) throws IOException {
@@ -56,7 +58,7 @@ public class HostRegistrationSession {
             return false;
         }
 
-        return finalizeVerification(connection, ownerSocket, expectedCode, receivedCode.trim());
+        return finalizeVerification(connection, expectedCode, receivedCode.trim());
     }
 
     private String sendVerificationCode(Connection connection) throws IOException {
@@ -70,17 +72,22 @@ public class HostRegistrationSession {
         return code;
     }
 
-    private boolean finalizeVerification(Connection connection, Socket ownerSocket,
-                                      String expectedCode, String receivedCode) throws IOException {
+    private boolean finalizeVerification(Connection connection, String expectedCode, String receivedCode) throws IOException {
         if (!expectedCode.equals(receivedCode)) {
             connection.sendLine(ERROR_INVALID_CODE);
             cancel();
             return false;
         }
 
-        pendingHost.setConnection(connection);
+        HostConnectionListener listener = new HostConnectionListener(connection, tokenManager);
+        pendingHost.setConnectionListener(listener);
         hostManager.confirm(pendingHost);
         connection.sendLine(RESPONSE_OK);
+
+        Thread listenerThread = new Thread(listener);
+        listenerThread.setDaemon(true);
+        listenerThread.start();
+
         clearPending();
         return true;
     }

@@ -23,7 +23,6 @@ public class ClientHandler implements Runnable {
     private static final String COMMAND_LOGIN = "login";
     private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
     private static final String COMMAND_CONNECT_WORKSPACE = "connect-workspace";
-    private static final String COMMAND_WHOIS = "whois";
 
     private static final String ERROR_NOT_LOGGED_IN = "ERROR Not logged in";
     private static final String ERROR_UNKNOWN_COMMAND = "ERROR Unknown command";
@@ -35,42 +34,54 @@ public class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
-        this.session = new HostRegistrationSession(hostManager, verificationService);
+        this.session = new HostRegistrationSession(hostManager, verificationService, tokenManager);
     }
 
     @Override
     public void run() {
-        try (Connection connection = new Connection(socket)) {
+        Connection connection = null;
+        try {
+            connection = new Connection(socket);
             String line;
             while ((line = connection.readLine()) != null) {
                 System.out.println("Received: " + line);
-                dispatch(connection, line);
+                boolean stopReading = dispatch(connection, line);
+                if (stopReading) {
+                    return;
+                }
             }
+            connection.close();
         } catch (IOException e) {
             e.printStackTrace();
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (IOException ignored) {
+                }
+            }
         } finally {
             session.cancel();
         }
     }
 
-    private void dispatch(Connection connection, String line) throws IOException {
+    private boolean dispatch(Connection connection, String line) throws IOException {
         String[] parts = line.trim().split("\\s+");
         if (parts.length == 0 || parts[0].isEmpty()) {
-            return;
+            return false;
         }
 
         switch (parts[0]) {
             case COMMAND_CREATE_HOST -> dispatchCreateHost(connection, parts);
             case COMMAND_CHECK -> {
-                if(session.handleCheck(connection, socket)) return ;
+                return session.handleCheck(connection, socket);
             }
             case COMMAND_REGISTER -> dispatchRegister(connection, parts);
             case COMMAND_LOGIN -> dispatchLogin(connection, parts);
             case COMMAND_CREATE_WORKSPACE -> dispatchCreateWorkspace(connection, parts);
             case COMMAND_CONNECT_WORKSPACE -> dispatchConnectWorkspace(connection, parts);
-            case COMMAND_WHOIS -> dispatchWhois(connection, parts);
             default -> connection.sendLine(ERROR_UNKNOWN_COMMAND);
         }
+        return false;
     }
 
     private void dispatchCreateHost(Connection connection, String[] parts) throws IOException {
@@ -101,6 +112,7 @@ public class ClientHandler implements Runnable {
         }
         connection.sendLine(loginUser(parts[1], parts[2]));
     }
+
     private void dispatchCreateWorkspace(Connection connection, String[] parts) throws IOException {
         if (parts.length != 2) {
             connection.sendLine("ERROR Usage: create-workspace <workspaceName>");
@@ -119,32 +131,18 @@ public class ClientHandler implements Runnable {
             connection.sendLine("ERROR Usage: connect-workspace <workspaceName>");
             return;
         }
-        if(loggedInUserId == null) {
+        if (loggedInUserId == null) {
             connection.sendLine("ERROR Not logged in");
             return;
         }
         String workspaceName = parts[1];
         WorkspaceInfo workspace = workspaceManager.findByName(workspaceName);
-        if(workspace == null){
+        if (workspace == null) {
             connection.sendLine("ERROR workspace not found");
             return;
         }
-        Token newToken = tokenManager.createToken(loggedInUserId,  workspaceName);
+        Token newToken = tokenManager.createToken(loggedInUserId, workspaceName);
         connection.sendLine("OK " + workspace.hostIp() + " " + workspace.port() + " " + newToken.token());
-        return;
-    }
-
-    private void dispatchWhois(Connection connection, String[] parts) throws IOException {
-        if (parts.length != 2) {
-            connection.sendLine("ERROR Usage: whois <token>");
-            return;
-        }
-        Token token = tokenManager.resolve(parts[1]);
-        if(token == null){
-            connection.sendLine("ERROR Token not found");
-            return;
-        }
-        connection.sendLine("OK " + token.creatorUserId());
     }
 
     private String registerUser(String phoneNumber, String password) {

@@ -13,13 +13,13 @@ public class Workspace {
     private final int port;
     private final ServerSocket serverSocket;
     @Getter
-    private final Connection centralConnection;
+    private final CentralConnectionListener centralConnectionListener;
     private final ConcurrentHashMap<Long, UserSession> onlineSessionsByUserId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> userIdByUsername = new ConcurrentHashMap<>();
 
-    public Workspace(int port, Connection centralConnection) throws IOException {
+    public Workspace(int port, CentralConnectionListener centralConnectionListener) throws IOException {
         this.port = port;
-        this.centralConnection = centralConnection;
+        this.centralConnectionListener = centralConnectionListener;
         this.serverSocket = new ServerSocket(port);
         Thread thread = new Thread(this::acceptLoop);
         thread.start();
@@ -40,7 +40,7 @@ public class Workspace {
             try {
                 Socket clientSocket = serverSocket.accept();
                 Connection clientConnection = new Connection(clientSocket);
-                new Thread(new ClientConnection(clientConnection, centralConnection, this)).start();
+                new Thread(new ClientConnection(clientConnection, centralConnectionListener, this)).start();
             } catch (IOException e) {
                 e.printStackTrace();
             }

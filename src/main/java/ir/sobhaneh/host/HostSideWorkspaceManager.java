@@ -1,24 +1,25 @@
-package ir.sobhaneh.host;
+//in the name of ALLAH
+//YA MAHDI
 
-import ir.sobhaneh.common.Connection;
+package ir.sobhaneh.host;
 
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HostSideWorkspaceManager {
     private final ConcurrentHashMap<Integer, Workspace> workspaces = new ConcurrentHashMap<>();
-    private final Connection centralConnection;
+    private CentralConnectionListener centralConnectionListener;
 
-    public HostSideWorkspaceManager(Connection centralConnection) {
-        this.centralConnection = centralConnection;
+    public void setCentralConnectionListener(CentralConnectionListener centralConnectionListener) {
+        this.centralConnectionListener = centralConnectionListener;
     }
 
-    public String handleCreateWorkspace(int port, long userId){
-        if(workspaces.containsKey(port)){
+    public String handleCreateWorkspace(int port, long userId) {
+        if (workspaces.containsKey(port)) {
             return "ERROR Workspace already exists on this port";
         }
         try {
-            Workspace newWorkspace = new Workspace(port, centralConnection);
+            Workspace newWorkspace = new Workspace(port, centralConnectionListener);
             workspaces.put(port, newWorkspace);
             return "OK";
         } catch (IOException e) {

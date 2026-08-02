@@ -7,19 +7,18 @@ import ir.sobhaneh.common.Connection;
 import ir.sobhaneh.host.models.UserSession;
 
 import java.io.IOException;
-import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientConnection implements Runnable {
-    private static final ConcurrentHashMap<Long, UserSession> userSessions = new ConcurrentHashMap<>();
     private final Connection connection;
-    private final Connection centralConnection;
+    private final CentralConnectionListener centralConnectionListener;
     private final Workspace workspace;
-    public ClientConnection(Connection connection, Connection centralConnection, Workspace workspace) {
+
+    public ClientConnection(Connection connection, CentralConnectionListener centralConnectionListener, Workspace workspace) {
         this.connection = connection;
-        this.centralConnection = centralConnection;
+        this.centralConnectionListener = centralConnectionListener;
         this.workspace = workspace;
     }
+
     @Override
     public void run() {
         try {
@@ -33,7 +32,7 @@ public class ClientConnection implements Runnable {
             }
             UserSession session = new UserSession(connection, userId, username);
             workspace.addSession(session);
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -52,11 +51,7 @@ public class ClientConnection implements Runnable {
         }
         String token = parts[1];
 
-        String response;
-        synchronized (centralConnection) {
-            centralConnection.sendLine("whois " + token);
-            response = centralConnection.readLine();
-        }
+        String response = centralConnectionListener.sendAndWait("whois " + token);
 
         if (response == null || !response.startsWith("OK ")) {
             connection.sendLine("ERROR Invalid or expired token");
@@ -85,6 +80,4 @@ public class ClientConnection implements Runnable {
         connection.sendLine("OK");
         return newUsername;
     }
-
-
 }

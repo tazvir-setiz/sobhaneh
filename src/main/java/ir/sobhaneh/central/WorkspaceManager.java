@@ -5,12 +5,10 @@ package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.HostInfo;
 import ir.sobhaneh.central.models.WorkspaceInfo;
-import ir.sobhaneh.common.Connection;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WorkspaceManager {
@@ -82,9 +80,8 @@ public class WorkspaceManager {
     }
 
     private boolean notifyHost(HostInfo host, int port, long creatorUserId) throws IOException {
-        Connection hostConnection = host.getConnection();
-        hostConnection.sendLine("create-workspace " + port + " " + creatorUserId);
-        String response = hostConnection.readLine();
+        String response = host.getConnectionListener()
+                .sendAndWait("create-workspace " + port + " " + creatorUserId);
         return RESPONSE_OK.equals(response);
     }
 
