@@ -3,17 +3,22 @@
 
 package ir.sobhaneh.central.models;
 
+import ir.sobhaneh.common.Connection;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
-
+@Getter
+@Setter
 public class HostInfo {
     private final String ip;
     private final int startPort;
     private final int endPort;
     private final List<Integer> unusedPorts;
-    private Socket socket;
+    private Connection connection;
 
     public HostInfo(String ip, int startPort, int endPort) {
         this.ip = ip;
@@ -25,17 +30,6 @@ public class HostInfo {
         }
     }
 
-    public String getIp() {
-        return ip;
-    }
-
-    public Socket getSocket() {
-        return socket;
-    }
-
-    public void setSocket(Socket socket) {
-        this.socket = socket;
-    }
 
     public boolean overlaps(int otherStart, int otherEnd) {
         return startPort <= otherEnd && otherStart <= endPort;

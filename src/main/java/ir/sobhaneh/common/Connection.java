@@ -9,7 +9,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-/** یک اتصال TCP خط‌به‌خط. هم central و هم host از همین کلاس استفاده می‌کنند. */
 public class Connection implements AutoCloseable {
     private final Socket socket;
     private final PrintWriter out;

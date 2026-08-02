@@ -82,7 +82,7 @@ public class WorkspaceManager {
     }
 
     private boolean notifyHost(HostInfo host, int port, long creatorUserId) throws IOException {
-        Connection hostConnection = new Connection(host.getSocket());
+        Connection hostConnection = host.getConnection();
         hostConnection.sendLine("create-workspace " + port + " " + creatorUserId);
         String response = hostConnection.readLine();
         return RESPONSE_OK.equals(response);

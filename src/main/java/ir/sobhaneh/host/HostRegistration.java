@@ -9,10 +9,11 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+
+
 public class HostRegistration {
     private static final String COMMAND_CHECK = "check";
     private static final String RESPONSE_OK = "OK";
-
     private final HostConfig config;
 
     public HostRegistration(HostConfig config) {
@@ -39,7 +40,7 @@ public class HostRegistration {
     }
 
     private int requestPortFromCentral(Connection centralConnection) throws IOException {
-        String command = "create-host " + config.getIp() + " " + config.getStartPort() + " " + config.getEndPort();
+        String command = "create-host " + config.hostIp() + " " + config.startPort() + " " + config.endPort();
         System.out.println("Sending: " + command);
         centralConnection.sendLine(command);
 

@@ -2,6 +2,7 @@ package ir.sobhaneh.host;
 
 import ir.sobhaneh.common.Connection;
 import ir.sobhaneh.host.models.UserSession;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -11,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Workspace {
     private final int port;
     private final ServerSocket serverSocket;
+    @Getter
     private final Connection centralConnection;
     private final ConcurrentHashMap<Long, UserSession> onlineSessionsByUserId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Long> userIdByUsername = new ConcurrentHashMap<>();
@@ -21,10 +23,6 @@ public class Workspace {
         this.serverSocket = new ServerSocket(port);
         Thread thread = new Thread(this::acceptLoop);
         thread.start();
-    }
-
-    public Connection getCentralConnection() {
-        return centralConnection;
     }
 
     public String findExistingUsername(long userId) {
@@ -48,5 +46,4 @@ public class Workspace {
             }
         }
     }
-    public record WorkspaceDate4Token(String hostIp, int workSpacePort){}
 }

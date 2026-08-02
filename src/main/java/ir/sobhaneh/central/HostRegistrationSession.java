@@ -39,24 +39,25 @@ public class HostRegistrationSession {
         connection.sendLine(RESPONSE_OK + " " + pendingPort);
     }
 
-    public void handleCheck(Connection connection, Socket ownerSocket) throws IOException {
+    public boolean handleCheck(Connection connection, Socket ownerSocket) throws IOException {
         if (pendingHost == null) {
             connection.sendLine(ERROR_NO_PENDING);
-            return;
+            return false;
         }
 
         String expectedCode = sendVerificationCode(connection);
         if (expectedCode == null) {
-            return;
+            return false;
         }
 
         String receivedCode = connection.readLine();
         if (receivedCode == null) {
             cancel();
-            return;
+            return false;
         }
 
         finalizeVerification(connection, ownerSocket, expectedCode, receivedCode.trim());
+        return true;
     }
 
     private String sendVerificationCode(Connection connection) throws IOException {
@@ -78,7 +79,7 @@ public class HostRegistrationSession {
             return;
         }
 
-        pendingHost.setSocket(ownerSocket);
+        pendingHost.setConnection(connection);
         hostManager.confirm(pendingHost);
         connection.sendLine(RESPONSE_OK);
         clearPending();

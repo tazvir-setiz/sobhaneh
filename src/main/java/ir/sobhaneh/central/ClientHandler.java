@@ -61,7 +61,9 @@ public class ClientHandler implements Runnable {
 
         switch (parts[0]) {
             case COMMAND_CREATE_HOST -> dispatchCreateHost(connection, parts);
-            case COMMAND_CHECK -> session.handleCheck(connection, socket);
+            case COMMAND_CHECK -> {
+                if(session.handleCheck(connection, socket)) return ;
+            }
             case COMMAND_REGISTER -> dispatchRegister(connection, parts);
             case COMMAND_LOGIN -> dispatchLogin(connection, parts);
             case COMMAND_CREATE_WORKSPACE -> dispatchCreateWorkspace(connection, parts);
