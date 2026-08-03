@@ -74,6 +74,7 @@ public class ClientConnection implements Runnable {
     private String resolveUsername(long userId) throws IOException {
         String existingUsername = workspace.findExistingUsername(userId);
         if (existingUsername != null) {
+            connection.sendLine("OK");
             return existingUsername;
         }
         connection.sendLine("username?");

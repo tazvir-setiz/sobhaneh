@@ -50,4 +50,26 @@ public class CentralConnection {
             return sendAndReceive(connection, CREATE_WORKSPACE + " " + workspaceName);
         }
     }
+
+    private WorkspaceLocation parseWorkspaceLocation(String workspaceName, String response) {
+        String[] parts = response.split("\\s+");
+        String ip = parts[1];
+        int port = Integer.parseInt(parts[2]);
+        String token = parts[3];
+        return new WorkspaceLocation(workspaceName, ip, port, token);
+    }
+
+    public WorkspaceLocation connectWorkspace(String workspaceName) throws IOException {
+        LoginConnectionResult result = openConnectionAndLogin();
+        if (result.errorMessage() != null) {
+            return null;
+        }
+        try (Connection connection = result.connection()) {
+            String response = sendAndReceive(connection, CONNECT_WORKSPACE + " " + workspaceName);
+            if (response == null || !response.startsWith(OK)) {
+                return null;
+            }
+            return parseWorkspaceLocation(workspaceName, response);
+        }
+    }
 }

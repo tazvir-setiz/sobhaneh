@@ -1,4 +1,4 @@
-package ir.sobhaneh.central.models;
+package ir.sobhaneh.host.models;
 
 public class Chat {
     String usernameA;
