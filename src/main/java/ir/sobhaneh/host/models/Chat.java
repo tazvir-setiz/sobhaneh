@@ -44,6 +44,14 @@ public class Chat {
         }
     }
 
+    public void decrementUnreadFor(String username) {
+        if (isUserA(username)) {
+            unreadCountForA.decrementAndGet();
+        } else {
+            unreadCountForB.decrementAndGet();
+        }
+    }
+
     public int getUnreadCountFor(String username) {
         if (isUserA(username)) {
             return unreadCountForA.get();
