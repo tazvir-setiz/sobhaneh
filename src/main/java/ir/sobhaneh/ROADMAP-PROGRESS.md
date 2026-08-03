@@ -726,4 +726,238 @@ shutdown → ذخیره و بسته شدن
       — این الگو («یک سوکت دائمی، یک خواننده، صف پاسخ برای sendAndWait») باید در
       روزهای بعد هم برای هر کانال دوطرفهٔ جدید (مثلاً چت client↔workspace) رعایت شود.
 5. 🔲 روز ۴: پروژهٔ `client` + مدل‌های `Message`/`Chat`
-6. 🔲 روز ۵: چت کامل + `disconnect` + `DataStore`/`HostDataStore` + `shutdown`
+6. 🔶 روز ۵: چت کامل + `disconnect` + `DataStore`/`HostDataStore` + `shutdown` (در حال انجام — جزئیات پایین همین سند)
+
+---
+
+# 🔶 وضعیت روز ۴ — تکمیل شد
+
+همه‌ی فایل‌های روز ۴ ساخته و تست شدن:
+
+```
+client/CommandParser.java        ✅
+client/CentralConnection.java    ✅
+client/LoginConnectionResult.java✅
+client/WorkspaceLocation.java    ✅
+client/WorkspaceConnection.java  ✅
+client/ClientMain.java           ✅
+host/models/Message.java         ✅ (زودتر از موعد، چون روز ۴ به آن اشاره کرده بود)
+host/models/Chat.java            🔶 (ساخته شد، فعلاً در حال تکمیل با فیلدهای unread — پایین توضیح داده شده)
+```
+
+### 🐛 باگ کشف‌شده و رفع‌شده در روز ۴: پاسخ ندادن `ClientConnection.resolveUsername` وقتی username از قبل وجود دارد
+
+در `ClientConnection.java` (سمت host)، وقتی `workspace.findExistingUsername(userId)` مقدار غیر-null برمی‌گرداند (یعنی
+کاربر قبلاً یک‌بار با یک username به همین workspace وصل شده)، متد فوراً `return existingUsername` می‌کرد **بدون فرستادن
+هیچ خطی به کلاینت**. کلاینت (`WorkspaceConnection.authenticate`) بعد از فرستادن `connect <token>` منتظر یک خط جواب
+می‌ماند و چون هیچ‌چیز نمی‌رسید، تا ابد در `readLine()` گیر می‌کرد (برنامه باز می‌ماند، بدون خروجی).
+
+**راه‌حل:** در مسیر «username از قبل موجود است»، باید `connection.sendLine("OK")` هم زده شود:
+
+```java
+private String resolveUsername(long userId) throws IOException {
+    String existingUsername = workspace.findExistingUsername(userId);
+    if (existingUsername != null) {
+        connection.sendLine("OK");   // ← این خط اضافه شد
+        return existingUsername;
+    }
+    connection.sendLine("username?");
+    String newUsername = connection.readLine();
+    if (newUsername == null) {
+        connection.sendLine("ERROR Invalid username");
+        return null;
+    }
+    connection.sendLine("OK");
+    return newUsername;
+}
+```
+
+### نکته‌ی ابزار تست: اجرای چند نمونه از `ClientMain` هم‌زمان
+
+برای تست دو کلاینت هم‌زمان (که خط‌فرمانشان `phoneNumber`/`password` متفاوت دارد)، یا از چند Run Configuration جدا در
+IntelliJ (هرکدام با Program Arguments متفاوت) استفاده کنید، یا مستقیم از خط فرمان با
+`java -cp ... ir.sobhaneh.client.ClientMain <phone> <password>` در چند پنجره‌ی ترمینال جدا.
+
+### یادداشت باز برای بعداً (نه فوری): `ProtocolCommands` مشترک
+
+پیشنهاد شد یک کلاس `common/ProtocolCommands.java` ساخته شود که همه‌ی رشته‌های دستور پروتکل (`register`, `login`,
+`create-workspace`, `connect-workspace`, `connect`, `whois`, `send-message`, `get-chats`, `get-messages`, `disconnect`,
+`OK`, ...) را یک‌جا نگه دارد، تا central، host، و client به‌جای تعریف جداگانه‌ی این ثابت‌ها در هر ماژول، همه از همین
+کلاس مشترک import کنند. این کار فعلاً **عمداً به تعویق افتاده** (برای جلوگیری از ریسک ریفکتور وسط کار) و باید به‌عنوان
+یک clean-up در پایان پروژه انجام شود.
+
+---
+
+# 🔶 وضعیت روز ۵ — در حال انجام
+
+## ترتیب پیاده‌سازی (به‌روزشونده در حین کار)
+
+1. ✅ `Message` (host/models) — بدون فیلد `timestamp` (تصمیم گرفته شد که فقط بر اساس `seq` عمل شود، چون پروتکل رسمی سند
+   هم فیلد زمان را در JSON خروجی نمی‌خواهد)
+2. 🔶 `Chat` (host/models) — نسخه‌ی پایه ساخته شد (`usernameA`, `usernameB`, `messages`, `nextSeq`, `addMessage`,
+   `buildKey`)؛ در حال تکمیل با فیلدهای unread (پایین توضیح داده شده)
+3. 🔲 `ChatSummary` (host/models یا host) — کلاس/رکورد کوچک برای خروجی `get-chats`
+4. 🔲 `JsonMapper` (host) — لایه‌ی تبدیل آبجکت↔JSON با Gson
+5. 🔲 `ChatStore` (host)
+6. 🔲 تکمیل `Workspace` — متد برای پیدا کردن session آنلاین بر اساس username (لازم برای چک «آیا گیرنده آنلاین است» و برای
+   فرستادن `receive-message`)
+7. 🔲 تکمیل `ClientConnection` — حلقه‌ی اصلی پردازش دستورها بعد از authenticate (
+   send-message/get-chats/get-messages/disconnect + مدیریت قطع ناگهانی با finally)
+8. 🔲 تست کامل چت بین دو کلاینت
+9. 🔲 `DataStore` (central) + `HostDataStore` (host) + دستور `shutdown`
+
+## `Message` (host/models) ✅ — فرمت نهایی
+
+```java
+public record Message(int seq, String from, String type, String body) {}
+```
+
+فیلد `timestamp` عمداً حذف شد — تصمیم گرفته شد ترتیب فقط با `seq` مدیریت شود، و چون فرمت JSON رسمی سند (
+`{"seq":..., "from":..., "type":..., "body":...}`) اصلاً فیلد زمان ندارد.
+
+## `Chat` (host/models) 🔶 — نسخه‌ی پایه + طرح تکمیل unread
+
+نسخه‌ی پایه‌ی فعلی:
+
+```java
+package ir.sobhaneh.host.models;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+import lombok.*;
+
+@RequiredArgsConstructor
+@Getter
+public class Chat {
+    private final String usernameA;
+    private final String usernameB;
+    private final List<Message> messages = new CopyOnWriteArrayList<>();
+    private final AtomicInteger lastSeq = new AtomicInteger(0);
+
+    public static String buildKey(String usernameA, String usernameB) {
+        if (usernameA.compareTo(usernameB) > 0) {
+            return usernameA + "-" + usernameB;
+        } else {
+            return usernameB + "-" + usernameA;
+        }
+    }
+
+    public int nextSeq() {
+        return lastSeq.incrementAndGet();
+    }
+
+    public void addMessage(Message message) {
+        messages.add(message);
+    }
+}
+```
+
+### 🔴 تصمیم طراحی مهم: unread داخل خودِ `Chat` نگه‌داری می‌شود (نه در یک نقشه‌ی جدا در `ChatStore`)
+
+بحث شد که دو رویکرد ممکن است: (الف) یک نقشه‌ی جدا در `ChatStore` با کلید ترکیبی `owner#otherParty`، یا (ب) دو شمارنده
+مستقیم داخل خودِ `Chat` (یکی برای هرکدام از دو طرف گفتگو). **رویکرد ب انتخاب شد** چون کپسوله‌سازی بهتری دارد — هر `Chat`
+مسئول کل وضعیت خودش (پیام‌ها + unread هر دو طرف) است.
+
+باید به `Chat` این فیلدها و متدها اضافه شود:
+
+**فیلدهای جدید:**
+
+- `unreadCountForA` (`AtomicInteger`, مقدار اولیه ۰)
+- `unreadCountForB` (`AtomicInteger`, مقدار اولیه ۰)
+
+**متد کمکی خصوصی:**
+
+- `isUserA(String username)` — چک می‌کند `username` برابر `usernameA` است یا `usernameB`؛ این منطق تشخیص در یک متد جمع
+  می‌شود چون سه متد پایین به آن نیاز دارند.
+
+**متدهای عمومی:**
+
+- `incrementUnreadFor(String username)` — با استفاده از `isUserA`، شمارنده‌ی متناظر را `incrementAndGet()` می‌کند.
+- `getUnreadCountFor(String username)` — شمارنده‌ی متناظر را `.get()` می‌کند.
+- `clearUnreadFor(String username)` — شمارنده‌ی متناظر را `.set(0)` می‌کند.
+
+### 🔴 تصمیم طراحی مهم: رفتار unread وقتی گیرنده آنلاین است
+
+بحث شد که وقتی پیامی فرستاده می‌شود و گیرنده در همان لحظه آنلاین است (پس `receive-message` بلافاصله برایش push می‌شود)،
+آیا unread او باید اصلاً زیاد شود یا نه. **تصمیم نهایی (انتخاب کاربر پروژه):** unread همیشه اول زیاد می‌شود (بدون قید و
+شرط، در `addMessage`)، و بلافاصله بعدش — اگر گیرنده آنلاین بود — با یک صدازدن جداگانه‌ی `clearUnreadFor` صفر می‌شود. این
+یعنی منطق «افزایش» ساده و بدون شرط می‌ماند، و تصمیم «آیا باید فوراً صفر شود» به‌صورت جدا و خواناتر بعد از آن می‌آید (نه
+این‌که از همان اول شرطی افزایش پیدا نکند).
+
+⚠️ **نتیجه‌ی این تصمیم برای `ChatStore.addMessage`:** این متد باید یک پارامتر `boolean recipientOnline` بگیرد (که از
+بیرون، توسط `ClientConnection`، بر اساس پرس‌وجو از `Workspace` تعیین می‌شود — `ChatStore` خودش نمی‌داند چه کسی آنلاین
+است). امضای پیشنهادی:
+
+```java
+public int addMessage(String from, String to, String type, String body, boolean recipientOnline)
+```
+
+منطق داخلی: افزودن پیام + `chat.incrementUnreadFor(to)` (همیشه) → سپس اگر `recipientOnline == true`، بلافاصله
+`chat.clearUnreadFor(to)` هم صدا زده شود.
+
+⚠️ **پیامد برای قدم ۶ (تکمیل `Workspace`):** برای این‌که `ClientConnection` بتواند `recipientOnline` را تعیین کند،
+`Workspace` باید یک متد داشته باشد که بگوید «آیا این username الان آنلاین است» — یعنی نگاشت از username به session (
+برعکس جهت `findExistingUsername` که از userId به username نگاشت می‌کند). این متد باید هنگام تکمیل `Workspace` (قدم ۶
+بالا) اضافه شود.
+
+## `ChatSummary` 🔲 (برای خروجی `get-chats`)
+
+یک کلاس/رکورد کوچک با دو فیلد: `name` (String) و شمارنده‌ی unread. طبق فرمت پروتکل سند، خروجی JSON باید کلید
+`unread_count` (با آندرلاین) داشته باشد — پس اگر فیلد جاوا camelCase (`unreadCount`) باشد، باید با annotation کتابخانه‌ی
+Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا ساده‌تر (ولی خلاف قرارداد نام‌گذاری جاوا)، مستقیم اسم فیلد
+را `unread_count` بگذاریم. تصمیم نهایی فرمت فیلد باید هنگام ساخت این کلاس گرفته شود.
+
+## `JsonMapper` 🔲 (لایه‌ی تبدیل با Gson)
+
+پیشنهاد شد یک کلاس جدا (`host/JsonMapper.java` یا نامی مشابه) بسازیم که مسئول همه‌ی تبدیل‌های آبجکت↔JSON باشد، تا
+`ChatStore` فقط منطق دامنه را مدیریت کند (تک‌مسئولیتی). متدهای پیشنهادی:
+
+- تبدیل یک `Message` به رشته‌ی JSON تکی (برای `receive-message`)
+- تبدیل `List<Message>` به رشته‌ی JSON Array (برای `get-messages`)
+- تبدیل `List<ChatSummary>` به رشته‌ی JSON Array (برای `get-chats`)
+
+## `ChatStore` 🔲 — طرح نهایی (هنوز نوشته نشده)
+
+### فیلدها
+
+- `ConcurrentHashMap<String, Chat> chatsByKey` — کلید از `Chat.buildKey` می‌آید.
+- ⚠️ به‌روزرسانی: دیگر نیازی به نقشه‌ی جداگانه‌ی unread نیست، چون unread داخل خودِ `Chat` نگه‌داری می‌شود (تصمیم بالا).
+
+### متد `addMessage(String from, String to, String type, String body, boolean recipientOnline)` — خروجی `int` (seq)
+
+1. کلید گفتگو را با `Chat.buildKey(from, to)` بساز.
+2. با `computeIfAbsent` روی `chatsByKey`، `Chat` مربوطه را پیدا یا atomic بساز.
+3. `chat.nextSeq()` بگیر.
+4. `Message` جدید بساز، با `chat.addMessage(...)` اضافه کن.
+5. `chat.incrementUnreadFor(to)` را همیشه صدا بزن.
+6. اگر `recipientOnline`، بلافاصله `chat.clearUnreadFor(to)` را هم صدا بزن.
+7. seq را برگردان.
+
+### متد ساخت JSON لیست چت‌های یک کاربر (برای `get-chats`) — خروجی `String`
+
+1. روی `chatsByKey.values()` پیمایش کن.
+2. برای هر `Chat`، چک کن `username` ورودی کدام طرف است (`usernameA`/`usernameB`)، طرف مقابل و
+   `chat.getUnreadCountFor(username)` را پیدا کن.
+3. یک `ChatSummary` بساز، به یک لیست میانی اضافه کن.
+4. لیست را با `JsonMapper` به JSON تبدیل کن و برگردان.
+
+### متد ساخت JSON پیام‌های یک گفتگوی خاص (برای `get-messages`) — خروجی `String`
+
+1. کلید گفتگو را بساز، `Chat` را با `get` (نه `computeIfAbsent`) از `chatsByKey` بگیر.
+2. اگر پیدا نشد، `"[]"` برگردان.
+3. اگر پیدا شد: `chat.getMessages()` را با `JsonMapper` به JSON تبدیل کن.
+4. **اثر جانبی**: `chat.clearUnreadFor(owner)` را صدا بزن.
+5. رشته‌ی JSON را برگردان.
+
+## یادداشت‌های باز (برای قدم‌های بعدی روز ۵)
+
+- تکمیل `Workspace`: نیاز به متد «آیا این username آنلاین است» / «session این username چیست» (برای `recipientOnline` در
+  `addMessage` و برای فرستادن مستقیم `receive-message`).
+- تکمیل `ClientConnection`: حلقه‌ی اصلی بعد از authenticate/resolveUsername که `send-message`/`get-chats`/
+  `get-messages`/`disconnect` را پردازش کند؛ باید طبق «اصل حیاتی روز ۳» (یک سوکت، یک خواننده) این حلقه خودش تنها
+  خواننده‌ی سوکت کلاینت است، پس مشکلی از نوع روز ۳ اینجا پیش نمی‌آید. اما نوشتن مستقیم `receive-message` روی اتصال یک
+  کاربر *دیگر* (از یک Thread متفاوت، یعنی Thread فرستنده) نیاز به هماهنگی دارد — پیشنهاد رودمپ قبلی: هر `Connection` یک
+  قفل نوشتن داخلی داشته باشد یا `sendLine` را `synchronized` کنیم، تا خطوط چند فرستنده‌ی هم‌زمان با هم قاطی نشوند.
+- قطع ناگهانی (بدون `disconnect`): حذف session از `Workspace` باید در یک بلوک `finally` باشد، نه فقط داخل دستور
+  `disconnect`.
