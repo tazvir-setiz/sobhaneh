@@ -40,4 +40,14 @@ public class CentralConnection {
             return sendAndReceive(connection, REGISTER + " " + phoneNumber + " " + password);
         }
     }
+
+    public String createWorkspace(String workspaceName) throws IOException {
+        LoginConnectionResult result = openConnectionAndLogin();
+        if (result.errorMessage() != null) {
+            return result.errorMessage();
+        }
+        try (Connection connection = result.connection()) {
+            return sendAndReceive(connection, CREATE_WORKSPACE + " " + workspaceName);
+        }
+    }
 }
