@@ -7,6 +7,6 @@ public class Chat {
 
     public static String buildKey(String usernameA, String usernameB) {
         if(usernameA.compareTo(usernameB) >  0) return usernameA + "-"  + usernameB;
-        else return usernameA + "-" + usernameB;
+        else return usernameB + "-" + usernameA;
     }
 }
