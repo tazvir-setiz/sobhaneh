@@ -7,7 +7,9 @@ import ir.sobhaneh.central.models.HostInfo;
 import ir.sobhaneh.central.models.WorkspaceInfo;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
@@ -105,5 +107,20 @@ public class WorkspaceManager {
     }
 
     private record HostPortReservation(HostInfo host, int port) {
+    }
+
+    public Map<String, WorkspaceInfo> exportWorkspaces() {
+        Map<String, WorkspaceInfo> result = new HashMap<>();
+        for (Map.Entry<String, WorkspaceInfo> entry : workspaces.entrySet()) {
+            WorkspaceInfo original = entry.getValue();
+            WorkspaceInfo sanitized = new WorkspaceInfo(original.name(), null, 0, original.creatorUserId());
+            result.put(entry.getKey(), sanitized);
+        }
+        return result;
+    }
+
+    public void importWorkspaces(Map<String, WorkspaceInfo> savedWorkspaces) {
+        workspaces.clear();
+        workspaces.putAll(savedWorkspaces);
     }
 }

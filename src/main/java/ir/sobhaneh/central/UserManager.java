@@ -87,7 +87,7 @@ public class UserManager {
     }
 
     public void importUsers(Map<String, User> users) {
-        users.clear();
-        users.putAll(users);
+        this.users.clear();
+        this.users.putAll(users);
     }
 }
