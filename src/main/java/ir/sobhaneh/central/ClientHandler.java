@@ -32,7 +32,7 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket socket, UserManager userManager, HostManager hostManager,
                          WorkspaceManager workspaceManager, TokenManager tokenManager) {
         this.socket = socket;
-        this.session = new HostRegistrationSession(hostManager, verificationService, tokenManager);
+        this.session = new HostRegistrationSession(hostManager, workspaceManager, verificationService, tokenManager);
         this.hostManager = hostManager;
         this.userManager = userManager;
         this.workspaceManager = workspaceManager;

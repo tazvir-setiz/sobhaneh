@@ -18,12 +18,14 @@ public class HostRegistrationSession {
     private final HostManager hostManager;
     private final VerificationService verificationService;
     private final TokenManager tokenManager;
+    private final WorkspaceManager workspaceManager;
 
     private HostInfo pendingHost;
     private int pendingPort = -1;
 
-    public HostRegistrationSession(HostManager hostManager, VerificationService verificationService, TokenManager tokenManager) {
+    public HostRegistrationSession(HostManager hostManager, WorkspaceManager workspaceManager, VerificationService verificationService, TokenManager tokenManager) {
         this.hostManager = hostManager;
+        this.workspaceManager = workspaceManager;
         this.verificationService = verificationService;
         this.tokenManager = tokenManager;
     }
@@ -82,7 +84,7 @@ public class HostRegistrationSession {
             return false;
         }
         System.out.println("[HostRegistrationSession] Host verified and confirmed: " + pendingHost.getIp());
-        HostConnectionListener listener = new HostConnectionListener(connection, tokenManager);
+        HostConnectionListener listener = new HostConnectionListener(connection, tokenManager, workspaceManager);
         pendingHost.setConnectionListener(listener);
         hostManager.confirm(pendingHost);
         connection.sendLine(RESPONSE_OK);

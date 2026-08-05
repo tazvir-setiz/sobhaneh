@@ -1,6 +1,3 @@
-//in the name of ALLAH
-//YA MAHDI
-
 package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.Token;
@@ -12,15 +9,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class HostConnectionListener implements Runnable {
     private static final String COMMAND_WHOIS = "whois";
+    private static final String COMMAND_WORKSPACE_NAME = "workspace-name";
+    private static final String RESPONSE_OK = "OK";
+    private static final String ERROR_TOKEN_NOT_FOUND = "ERROR Token not found";
+    private static final String ERROR_WORKSPACE_NOT_FOUND = "ERROR Workspace not found for this port";
 
     private final Connection connection;
     private final TokenManager tokenManager;
+    private final WorkspaceManager workspaceManager;
     private final Object writeLock = new Object();
     private final BlockingQueue<String> pendingResponses = new LinkedBlockingQueue<>();
 
-    public HostConnectionListener(Connection connection, TokenManager tokenManager) {
+    public HostConnectionListener(Connection connection, TokenManager tokenManager, WorkspaceManager workspaceManager) {
         this.connection = connection;
         this.tokenManager = tokenManager;
+        this.workspaceManager = workspaceManager;
     }
 
     @Override
@@ -41,6 +44,10 @@ public class HostConnectionListener implements Runnable {
             handleWhois(trimmed);
             return;
         }
+        if (trimmed.startsWith(COMMAND_WORKSPACE_NAME + " ")) {
+            handleWorkspaceNameQuery(trimmed);
+            return;
+        }
         try {
             pendingResponses.put(line);
         } catch (InterruptedException e) {
@@ -49,21 +56,38 @@ public class HostConnectionListener implements Runnable {
     }
 
     private void handleWhois(String line) throws IOException {
-        System.out.println("Got token line: " + line);
         String[] parts = line.split("\\s+");
         if (parts.length != 2) {
             connection.sendLine("ERROR Usage: whois <token>");
             return;
         }
         Token token = tokenManager.resolve(parts[1]);
-        System.out.println("Resolved token '" + parts[1] + "' -> " + token);
         if (token == null) {
-            connection.sendLine("ERROR Token not found");
-            System.out.println("Sent: ERROR Token not found");
+            connection.sendLine(ERROR_TOKEN_NOT_FOUND);
             return;
         }
-        connection.sendLine("OK " + token.creatorUserId());
-        System.out.println("Sent: OK " + token.creatorUserId());
+        connection.sendLine(RESPONSE_OK + " " + token.creatorUserId());
+    }
+
+    private void handleWorkspaceNameQuery(String line) throws IOException {
+        String[] parts = line.split("\\s+");
+        if (parts.length != 2) {
+            connection.sendLine("ERROR Usage: workspace-name <port>");
+            return;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            connection.sendLine("ERROR Invalid port number");
+            return;
+        }
+        String name = workspaceManager.findNameByPort(port);
+        if (name == null) {
+            connection.sendLine(ERROR_WORKSPACE_NOT_FOUND);
+            return;
+        }
+        connection.sendLine(RESPONSE_OK + " " + name);
     }
 
     public String sendAndWait(String command) throws IOException {

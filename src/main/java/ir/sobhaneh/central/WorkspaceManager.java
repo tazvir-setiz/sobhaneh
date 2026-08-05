@@ -109,6 +109,15 @@ public class WorkspaceManager {
     private record HostPortReservation(HostInfo host, int port) {
     }
 
+    public String findNameByPort(int port) {
+        for (WorkspaceInfo info : workspaces.values()) {
+            if (info.port() == port) {
+                return info.name();
+            }
+        }
+        return null;
+    }
+
     public Map<String, WorkspaceInfo> exportWorkspaces() {
         Map<String, WorkspaceInfo> result = new HashMap<>();
         for (Map.Entry<String, WorkspaceInfo> entry : workspaces.entrySet()) {

@@ -3,19 +3,25 @@
 
 package ir.sobhaneh.host;
 
-import ir.sobhaneh.host.models.Chat;
-import ir.sobhaneh.host.models.ChatSummary;
-import ir.sobhaneh.host.models.Message;
+import ir.sobhaneh.host.models.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-public class ChatStore {
+public class ChatStore implements Serializable {
     private static final String EMPTY_JSON_ARRAY = "[]";
 
     private final ConcurrentHashMap<String, Chat> chatsByKey = new ConcurrentHashMap<>();
-    private final JsonMapper jsonMapper = new JsonMapper();
+    transient private JsonMapper jsonMapper = null;
+
+    private void jsonMapperInit() {
+        if (jsonMapper == null) {
+            jsonMapper = new JsonMapper();
+        }
+    }
 
     public int addMessage(String from, String to, String type, String body, boolean recipientOnline) {
         Chat chat = findOrCreateChat(from, to);
@@ -42,6 +48,7 @@ public class ChatStore {
             int unreadCount = chat.getUnreadCountFor(username);
             summaries.add(new ChatSummary(otherParty, unreadCount));
         }
+        jsonMapperInit();
         return jsonMapper.chatSummariesToJson(summaries);
     }
 
@@ -52,6 +59,7 @@ public class ChatStore {
             return EMPTY_JSON_ARRAY;
         }
         chat.clearUnreadFor(owner);
+        jsonMapperInit();
         return jsonMapper.messagesToJson(chat.getMessages());
     }
 
@@ -69,4 +77,25 @@ public class ChatStore {
         }
         return null;
     }
+
+    public ChatStoreDto toChatStoreData() {
+        List<ChatDto> chatDtos = chatsByKey.values()
+                .stream()
+                .map(chat -> new ChatDto(
+                        chat.getUsernameA(),
+                        chat.getUsernameB(),
+                        chat.getMessages(),
+                        chat.getUnreadCountFor(chat.getUsernameA()),
+                        chat.getUnreadCountFor(chat.getUsernameB())
+                ))
+                .collect(Collectors.toList());
+        ChatStoreDto newChatStoreDto = new ChatStoreDto(chatDtos);
+        return newChatStoreDto;
+    }
+
+    public void fromChatStoreData(ChatStoreDto data) {
+
+    }
+
+
 }

@@ -33,9 +33,14 @@ public class Chat implements Serializable {
         return lastSeq.incrementAndGet();
     }
 
+    public void setSeq(int seq) {
+        lastSeq.set(seq);
+    }
+
     public void addMessage(Message message) {
         messages.add(message);
     }
+
 
     public void incrementUnreadFor(String username) {
         if (isUserA(username)) {
@@ -45,6 +50,13 @@ public class Chat implements Serializable {
         }
     }
 
+    public void setUnreadFor(String username, int unreadCount) {
+        if (isUserA(username)) {
+            unreadCountForA.set(unreadCount);
+        } else {
+            unreadCountForB.set(unreadCount);
+        }
+    }
     public void decrementUnreadFor(String username) {
         if (isUserA(username)) {
             unreadCountForA.decrementAndGet();
