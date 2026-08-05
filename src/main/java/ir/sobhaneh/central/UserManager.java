@@ -2,9 +2,10 @@ package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.User;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 
 public class UserManager {
     public final Object registerLock = new Object();
@@ -79,5 +80,14 @@ public class UserManager {
         User user = users.get(phoneNumber);
         if(!user.getPassword().equals(password)) return "ERROR Incorrect Password";
         return "OK";
+    }
+
+    public Map<String, User> exportUsers() {
+        return new HashMap<>(users);
+    }
+
+    public void importUsers(Map<String, User> users) {
+        users.clear();
+        users.putAll(users);
     }
 }

@@ -1,8 +1,14 @@
 package ir.sobhaneh.central.models;
 
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class User {
+@Getter
+@Setter
+public class User implements Serializable {
     private static AtomicLong counter = new AtomicLong(0);
     private final long id;
     private final String phoneNumber;
@@ -12,25 +18,5 @@ public class User {
         this.id = counter.incrementAndGet();
         this.phoneNumber = phoneNumber;
         this.password = password;
-    }
-
-    public static AtomicLong getCounter() {
-        return counter;
-    }
-
-    public static void setCounter(AtomicLong counter) {
-        User.counter = counter;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public String getPassword() {
-        return password;
     }
 }

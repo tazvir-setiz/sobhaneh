@@ -3,5 +3,7 @@
 
 package ir.sobhaneh.central.models;
 
-public record WorkspaceInfo(String name, String hostIp, int port, long creatorUserId) {
+import java.io.Serializable;
+
+public record WorkspaceInfo(String name, String hostIp, int port, long creatorUserId) implements Serializable {
 }

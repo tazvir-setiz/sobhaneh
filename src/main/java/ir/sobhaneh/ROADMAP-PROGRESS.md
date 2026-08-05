@@ -753,7 +753,6 @@ host/models/Chat.java            🔶 (ساخته شد، فعلاً در حال 
 می‌ماند و چون هیچ‌چیز نمی‌رسید، تا ابد در `readLine()` گیر می‌کرد (برنامه باز می‌ماند، بدون خروجی).
 
 **راه‌حل:** در مسیر «username از قبل موجود است»، باید `connection.sendLine("OK")` هم زده شود:
-
 ```java
 private String resolveUsername(long userId) throws IOException {
     String existingUsername = workspace.findExistingUsername(userId);
@@ -818,7 +817,6 @@ public record Message(int seq, String from, String type, String body) {}
 ## `Chat` (host/models) 🔶 — نسخه‌ی پایه + طرح تکمیل unread
 
 نسخه‌ی پایه‌ی فعلی:
-
 ```java
 package ir.sobhaneh.host.models;
 
@@ -862,7 +860,6 @@ public class Chat {
 باید به `Chat` این فیلدها و متدها اضافه شود:
 
 **فیلدهای جدید:**
-
 - `unreadCountForA` (`AtomicInteger`, مقدار اولیه ۰)
 - `unreadCountForB` (`AtomicInteger`, مقدار اولیه ۰)
 
@@ -872,7 +869,6 @@ public class Chat {
   می‌شود چون سه متد پایین به آن نیاز دارند.
 
 **متدهای عمومی:**
-
 - `incrementUnreadFor(String username)` — با استفاده از `isUserA`، شمارنده‌ی متناظر را `incrementAndGet()` می‌کند.
 - `getUnreadCountFor(String username)` — شمارنده‌ی متناظر را `.get()` می‌کند.
 - `clearUnreadFor(String username)` — شمارنده‌ی متناظر را `.set(0)` می‌کند.
@@ -888,7 +884,6 @@ public class Chat {
 ⚠️ **نتیجه‌ی این تصمیم برای `ChatStore.addMessage`:** این متد باید یک پارامتر `boolean recipientOnline` بگیرد (که از
 بیرون، توسط `ClientConnection`، بر اساس پرس‌وجو از `Workspace` تعیین می‌شود — `ChatStore` خودش نمی‌داند چه کسی آنلاین
 است). امضای پیشنهادی:
-
 ```java
 public int addMessage(String from, String to, String type, String body, boolean recipientOnline)
 ```
@@ -912,7 +907,6 @@ Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا سا
 
 پیشنهاد شد یک کلاس جدا (`host/JsonMapper.java` یا نامی مشابه) بسازیم که مسئول همه‌ی تبدیل‌های آبجکت↔JSON باشد، تا
 `ChatStore` فقط منطق دامنه را مدیریت کند (تک‌مسئولیتی). متدهای پیشنهادی:
-
 - تبدیل یک `Message` به رشته‌ی JSON تکی (برای `receive-message`)
 - تبدیل `List<Message>` به رشته‌ی JSON Array (برای `get-messages`)
 - تبدیل `List<ChatSummary>` به رشته‌ی JSON Array (برای `get-chats`)
@@ -920,12 +914,10 @@ Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا سا
 ## `ChatStore` 🔲 — طرح نهایی (هنوز نوشته نشده)
 
 ### فیلدها
-
 - `ConcurrentHashMap<String, Chat> chatsByKey` — کلید از `Chat.buildKey` می‌آید.
 - ⚠️ به‌روزرسانی: دیگر نیازی به نقشه‌ی جداگانه‌ی unread نیست، چون unread داخل خودِ `Chat` نگه‌داری می‌شود (تصمیم بالا).
 
 ### متد `addMessage(String from, String to, String type, String body, boolean recipientOnline)` — خروجی `int` (seq)
-
 1. کلید گفتگو را با `Chat.buildKey(from, to)` بساز.
 2. با `computeIfAbsent` روی `chatsByKey`، `Chat` مربوطه را پیدا یا atomic بساز.
 3. `chat.nextSeq()` بگیر.
@@ -935,7 +927,6 @@ Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا سا
 7. seq را برگردان.
 
 ### متد ساخت JSON لیست چت‌های یک کاربر (برای `get-chats`) — خروجی `String`
-
 1. روی `chatsByKey.values()` پیمایش کن.
 2. برای هر `Chat`، چک کن `username` ورودی کدام طرف است (`usernameA`/`usernameB`)، طرف مقابل و
    `chat.getUnreadCountFor(username)` را پیدا کن.
@@ -943,7 +934,6 @@ Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا سا
 4. لیست را با `JsonMapper` به JSON تبدیل کن و برگردان.
 
 ### متد ساخت JSON پیام‌های یک گفتگوی خاص (برای `get-messages`) — خروجی `String`
-
 1. کلید گفتگو را بساز، `Chat` را با `get` (نه `computeIfAbsent`) از `chatsByKey` بگیر.
 2. اگر پیدا نشد، `"[]"` برگردان.
 3. اگر پیدا شد: `chat.getMessages()` را با `JsonMapper` به JSON تبدیل کن.
@@ -961,3 +951,572 @@ Gson به اسم `@SerializedName("unread_count")` نگاشت شود؛ یا سا
   قفل نوشتن داخلی داشته باشد یا `sendLine` را `synchronized` کنیم، تا خطوط چند فرستنده‌ی هم‌زمان با هم قاطی نشوند.
 - قطع ناگهانی (بدون `disconnect`): حذف session از `Workspace` باید در یک بلوک `finally` باشد، نه فقط داخل دستور
   `disconnect`.
+
+---
+
+## ✅ روز ۵ (بخش چت) — تکمیل و تست شد
+
+### فایل‌های نهایی
+
+```
+host/models/Message.java             ✅
+host/models/Chat.java                ✅
+host/models/ChatSummary.java         ✅
+host/models/IncomingMessagePayload.java ✅
+host/JsonMapper.java                 ✅
+host/ChatStore.java                  ✅
+host/Workspace.java                  ✅ (به‌روز — chatStore + رفع باگ نقشه‌ی دائمی username)
+host/ClientConnection.java           ✅ (به‌روز — حلقه‌ی کامل پردازش دستورها)
+```
+
+### `IncomingMessagePayload` (host/models) ✅
+
+```java
+public record IncomingMessagePayload(String type, String body) {}
+```
+
+برای پارس کردن JSON *ورودی* دستور `send-message` (که فقط `type` و `body` دارد — بر خلاف JSON *خروجی* که `seq` و `from`
+را هم دارد و همان `Message` است). این تمایز مهم بود: JSON ورودی و خروجی `send-message` فرمت متفاوتی دارند و یک کلاس
+مشترک برایشان درست نبود.
+
+### `Chat` نسخه‌ی نهایی ✅ — با unread دو طرفه
+
+```java
+package ir.sobhaneh.host.models;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+
+@RequiredArgsConstructor
+@Getter
+public class Chat {
+    private final String usernameA;
+    private final String usernameB;
+    private final List<Message> messages = new CopyOnWriteArrayList<>();
+    private final AtomicInteger lastSeq = new AtomicInteger(0);
+    private final AtomicInteger unreadCountForA = new AtomicInteger(0);
+    private final AtomicInteger unreadCountForB = new AtomicInteger(0);
+
+    public static String buildKey(String usernameA, String usernameB) {
+        if (usernameA.compareTo(usernameB) > 0) {
+            return usernameA + "-" + usernameB;
+        } else {
+            return usernameB + "-" + usernameA;
+        }
+    }
+
+    public int nextSeq() {
+        return lastSeq.incrementAndGet();
+    }
+
+    public void addMessage(Message message) {
+        messages.add(message);
+    }
+
+    public void incrementUnreadFor(String username) {
+        if (isUserA(username)) {
+            unreadCountForA.incrementAndGet();
+        } else {
+            unreadCountForB.incrementAndGet();
+        }
+    }
+
+    public void decrementUnreadFor(String username) {
+        if (isUserA(username)) {
+            unreadCountForA.decrementAndGet();
+        } else {
+            unreadCountForB.decrementAndGet();
+        }
+    }
+
+    public int getUnreadCountFor(String username) {
+        if (isUserA(username)) {
+            return unreadCountForA.get();
+        } else {
+            return unreadCountForB.get();
+        }
+    }
+
+    public void clearUnreadFor(String username) {
+        if (isUserA(username)) {
+            unreadCountForA.set(0);
+        } else {
+            unreadCountForB.set(0);
+        }
+    }
+
+    private boolean isUserA(String username) {
+        return usernameA.equals(username);
+    }
+}
+```
+
+### 🔴 تصمیم طراحی مهم: unread یک شمارنده‌ی زوج‌محور است، نه یک نقشه‌ی جدا در `ChatStore`
+
+هر `Chat` دو شمارنده دارد (`unreadCountForA`, `unreadCountForB`) — یکی برای هر طرف گفتگو. این کپسوله‌سازی بهتری نسبت به
+نگه‌داری unread در یک نقشه‌ی جدا با کلید ترکیبی `owner#otherParty` در `ChatStore` دارد.
+
+### 🔴 تصمیم طراحی مهم: رفتار دقیق unread وقتی گیرنده در لحظه‌ی ارسال آنلاین است
+
+ابتدا تصمیم گرفته شده بود که در این حالت `clearUnreadFor` (صفر کردن کامل) صدا زده شود، اما **این اشتباه بود** — چون
+`clearUnreadFor` تمام پیام‌های خوانده‌نشده‌ی *قبلی* آن گفتگو را هم پاک می‌کرد، نه فقط همین پیام تازه. **تصمیم نهاییِ
+درست:** یک متد جدید `decrementUnreadFor` اضافه شد که فقط **یکی کم** می‌کند (نه صفر). منطق نهایی در
+`ChatStore.addMessage`:
+
+1. `chat.incrementUnreadFor(to)` — همیشه، بدون قید و شرط.
+2. اگر `recipientOnline == true`، بلافاصله `chat.decrementUnreadFor(to)` هم صدا زده شود — که خالص این دو عملیات با هم
+   صفر می‌شود (یعنی همین پیام تازه اثری روی شمارنده نمی‌گذارد)، بدون این‌که به unreadهای قدیمی‌تر آن گفتگو دست بزند.
+
+`clearUnreadFor` (صفر کامل) برای جای دیگری نگه داشته شد: وقتی کاربر صریحاً `get-messages` می‌زند (که طبق پروتکل سند،
+باید تمام unread آن گفتگو صفر شود).
+
+### `JsonMapper` (host) ✅
+
+```java
+public class JsonMapper {
+    private final Gson gson = new Gson();
+
+    public IncomingMessagePayload parseIncomingMessage(String json) {
+        return gson.fromJson(json, IncomingMessagePayload.class);
+    }
+
+    public String messageToJson(Message message) {
+        return gson.toJson(message);
+    }
+
+    public String messagesToJson(List<Message> messages) {
+        return gson.toJson(messages);
+    }
+
+    public String chatSummariesToJson(List<ChatSummary> summaries) {
+        return gson.toJson(summaries);
+    }
+}
+```
+
+⚠️ نکته: پیشوند `"OK "` روی خروجی JSON اضافه نمی‌شود — این مسئولیت لایه‌ی پروتکل (`ClientConnection`) است، نه
+`JsonMapper`.
+
+### `ChatSummary` (host/models) ✅
+
+```java
+public record ChatSummary(String name, @SerializedName("unread_count") int unreadCount) {}
+```
+
+با Gson 2.11.0 (که در `pom.xml` وجود دارد)، `record` + `@SerializedName` روی پارامتر canonical constructor به‌درستی کار
+کرد و خروجی JSON دقیقاً `{"name":"...","unread_count":...}` شد.
+
+### `ChatStore` (host) ✅ — نسخه‌ی نهایی
+
+```java
+public class ChatStore {
+    private static final String EMPTY_JSON_ARRAY = "[]";
+    private final ConcurrentHashMap<String, Chat> chatsByKey = new ConcurrentHashMap<>();
+    private final JsonMapper jsonMapper = new JsonMapper();
+
+    public int addMessage(String from, String to, String type, String body, boolean recipientOnline) {
+        Chat chat = findOrCreateChat(from, to);
+        int seq = chat.nextSeq();
+        Message message = new Message(seq, from, type, body);
+        chat.addMessage(message);
+        chat.incrementUnreadFor(to);
+        if (recipientOnline) {
+            chat.decrementUnreadFor(to);
+        }
+        return seq;
+    }
+
+    public String buildChatsJson(String username) {
+        List<ChatSummary> summaries = new ArrayList<>();
+        for (Chat chat : chatsByKey.values()) {
+            String otherParty = resolveOtherParty(chat, username);
+            if (otherParty == null) continue;
+            summaries.add(new ChatSummary(otherParty, chat.getUnreadCountFor(username)));
+        }
+        return jsonMapper.chatSummariesToJson(summaries);
+    }
+
+    public String buildMessagesJson(String owner, String otherParty) {
+        Chat chat = chatsByKey.get(Chat.buildKey(owner, otherParty));
+        if (chat == null) return EMPTY_JSON_ARRAY;
+        chat.clearUnreadFor(owner);
+        return jsonMapper.messagesToJson(chat.getMessages());
+    }
+
+    private Chat findOrCreateChat(String from, String to) {
+        return chatsByKey.computeIfAbsent(Chat.buildKey(from, to), k -> new Chat(from, to));
+    }
+
+    private String resolveOtherParty(Chat chat, String username) {
+        if (username.equals(chat.getUsernameA())) return chat.getUsernameB();
+        if (username.equals(chat.getUsernameB())) return chat.getUsernameA();
+        return null;
+    }
+}
+```
+
+با یک تست دستی مجزا (`ChatStoreManualTest`، بدون شبکه) کاملاً تأیید شد — شامل: seq افزایشی درست بین هر جفت کاربر، unread
+درست برای گیرنده‌ی آفلاین، عدم افزایش unread برای گیرنده‌ی آنلاین، صفر شدن unread بعد از `get-messages`، و رفتار صحیح
+برای کاربر/گفتگوی ناموجود (`[]`).
+
+### 🐛 باگ کشف‌شده و رفع‌شده: `findExistingUsername` بعد از `disconnect` دوباره `username?` می‌پرسید
+
+**علت:** `findExistingUsername` از `onlineSessionsByUserId` می‌خواند، و `removeSession` (که موقع `disconnect` صدا زده
+می‌شود) دقیقاً همین نقشه را پاک می‌کند. یعنی بعد از هر `disconnect`، هیچ ردی از username انتخابی کاربر باقی نمی‌ماند و
+اتصال بعدی دوباره `username?` می‌پرسید — با این‌که کاربر قبلاً یک‌بار اسم انتخاب کرده بود.
+
+**راه‌حل:** یک نقشه‌ی **دائمی و جدا** به `Workspace` اضافه شد که با `disconnect` پاک نمی‌شود:
+
+```java
+private final ConcurrentHashMap<Long, String> permanentUsernameByUserId = new ConcurrentHashMap<>();
+```
+
+- `addSession` این نقشه را هم پر می‌کند (علاوه بر نقشه‌های آنلاین).
+- `findExistingUsername` از این نقشه‌ی دائمی می‌خواند (نه از `onlineSessionsByUserId`).
+- `removeSession` بدون تغییر مانده — فقط نقشه‌های آنلاین را پاک می‌کند، نقشه‌ی دائمی دست‌نخورده می‌ماند.
+
+⚠️ این محدودیت دقیقاً همان چیزی بود که در یادداشت روز ۳ پیش‌بینی شده بود («این نگاشت‌ها فقط کاربران آنلاین را نشان
+می‌دهند...») — یعنی مشکل از قبل شناخته شده بود، فقط پیش از تست واقعی رفعش نکرده بودیم. ذخیره‌سازی دائمی روی دیسک (
+`HostDataStore`، قدم بعدی) این را حتی بعد از ری‌استارت کامل host هم حفظ خواهد کرد؛ نقشه‌ی `permanentUsernameByUserId`
+فقط تا وقتی برنامه‌ی host روشن است معتبر است.
+
+### `Workspace` نسخه‌ی نهایی ✅ (متدهای جدید نسبت به روز ۳)
+
+```java
+private final ChatStore chatStore = new ChatStore(); // با @Getter
+
+private final ConcurrentHashMap<Long, String> permanentUsernameByUserId = new ConcurrentHashMap<>();
+
+public void addSession(UserSession session) {
+    onlineSessionsByUserId.put(session.userId(), session);
+    userIdByUsername.put(session.username(), session.userId());
+    permanentUsernameByUserId.put(session.userId(), session.username());
+}
+
+public String findExistingUsername(long userId) {
+    return permanentUsernameByUserId.get(userId);
+}
+
+public UserSession findSessionByUsername(String username) {
+    Long userId = userIdByUsername.get(username);
+    if (userId == null) return null;
+    return onlineSessionsByUserId.get(userId);
+}
+
+public void removeSession(long userId, String username) {
+    onlineSessionsByUserId.remove(userId);
+    userIdByUsername.remove(username);
+}
+```
+
+### `ClientConnection` نسخه‌ی نهایی ✅ — حلقه‌ی کامل پردازش دستورها
+
+```java
+
+@Override
+public void run() {
+    try {
+        long userId = authenticate();
+        if (userId == -1) return;
+        String username = resolveUsername(userId);
+        if (username == null) return;
+        UserSession session = new UserSession(connection, userId, username);
+        workspace.addSession(session);
+        try {
+            handleCommands(userId, username);
+        } finally {
+            workspace.removeSession(userId, username);
+        }
+    } catch (IOException e) {
+        System.out.println("[ClientConnection] IOException: " + e.getMessage());
+    }
+}
+
+private void handleCommands(long userId, String username) throws IOException {
+    String line;
+    while ((line = connection.readLine()) != null) {
+        boolean shouldStop = dispatchCommand(line, username);
+        if (shouldStop) return;
+    }
+}
+
+private boolean dispatchCommand(String line, String username) throws IOException {
+    CommandParser parsedCommand = new CommandParser(line); // از پکیج client، مشترک import شده
+    switch (parsedCommand.getCommand()) {
+        case "send-message" -> handleSendMessage(parsedCommand, username);
+        case "get-chats" -> handleGetChats(username);
+        case "get-messages" -> handleGetMessages(parsedCommand, username);
+        case "disconnect" -> {
+            return true;
+        }
+        default -> connection.sendLine("ERROR Unknown command");
+    }
+    return false;
+}
+
+private void handleSendMessage(CommandParser parsedCommand, String fromUsername) throws IOException {
+    String toUsername = parsedCommand.getArgs()[0];
+    IncomingMessagePayload payload = jsonMapper.parseIncomingMessage(parsedCommand.getJson());
+
+    UserSession recipientSession = workspace.findSessionByUsername(toUsername);
+    boolean recipientOnline = recipientSession != null;
+
+    ChatStore chatStore = workspace.getChatStore();
+    int seq = chatStore.addMessage(fromUsername, toUsername, payload.type(), payload.body(), recipientOnline);
+    connection.sendLine("OK " + seq);
+
+    if (recipientOnline) {
+        Message message = new Message(seq, fromUsername, payload.type(), payload.body());
+        String messageJson = jsonMapper.messageToJson(message);
+        recipientSession.connection().sendLine("receive-message " + fromUsername + " " + messageJson);
+    }
+}
+
+private void handleGetChats(String username) throws IOException {
+    connection.sendLine("OK " + workspace.getChatStore().buildChatsJson(username));
+}
+
+private void handleGetMessages(CommandParser parsedCommand, String username) throws IOException {
+    String otherParty = parsedCommand.getArgs()[0];
+    connection.sendLine("OK " + workspace.getChatStore().buildMessagesJson(username, otherParty));
+}
+```
+
+⚠️ **نکته‌ی معماری مهم دربارهٔ `CommandParser`:** به‌جای ساختن یک نسخه‌ی جدا برای host، همان `CommandParser` که در روز ۴
+برای `client` ساخته شده بود مستقیماً از پکیج `ir.sobhaneh.client` در `host` هم import و استفاده شد — چون منطقش کاملاً
+عمومی و بدون وابستگی به client بود. (این با یادداشت قبلی دربارهٔ `ProtocolCommands` هم‌راستاست: بعضی از قطعات کاملاً
+عمومی می‌توانند/باید بین ماژول‌ها به اشتراک گذاشته شوند؛ فعلاً با import مستقیم انجام شده، نه با انتقال به `common`.)
+
+⚠️ **نکته‌ی مهم دربارهٔ `receive-message` بین Thread‌های مختلف:** `recipientSession.connection().sendLine(...)` از
+Thread فرستنده (نه Thread گیرنده) روی سوکت گیرنده نوشته می‌شود. این کار کرد چون `Connection.sendLine` از
+`PrintWriter.println` استفاده می‌کند که در سطح خط thread-safe است — تأیید شد که مشکلی پیش نیامد.
+
+### ✅ سناریوهای تست‌شده و تأییدشده
+
+**تست ۱ — دو کاربر آنلاین:**
+
+- ارسال/دریافت پیام دوطرفه با `receive-message` لحظه‌ای ✅
+- `seq` افزایشی و درست بین دو کاربر خاص ✅
+- `get-chats` با `unread_count: 0` (چون هر دو آنلاین بودند) ✅
+- `get-messages` با کل تاریخچه‌ی دوطرفه ✅
+- `disconnect` ✅
+
+**تست ۲ — گیرنده‌ی آفلاین:**
+
+- ارسال چند پیام به گیرنده‌ی آفلاین (بدون push، فقط ذخیره) ✅
+- `unread_count` درست افزایش پیدا کرد برای گیرنده ✅
+- `unread_count` برای فرستنده صفر ماند (چون این unread مال جهت دیگری‌ست) ✅
+- اتصال مجدد کاربر آفلاین‌شده با username قبلی — بدون پرسیدن دوباره‌ی `username?` (بعد از رفع باگ نقشه‌ی دائمی) ✅
+- `get-messages` بعد از اتصال مجدد، تاریخچه را نشان داد و `unread_count` را صفر کرد ✅
+
+### نکته‌ی جانبی: دستور `login` مستقل در `ClientMain` پشتیبانی نمی‌شود (و لازم هم نیست)
+
+در حین تست، تلاش برای تایپ مستقیم `login` در `ClientMain` باعث `ERROR Unknown command` شد. این باگ نبود — طراحی عمدی
+است: `CentralConnection.createWorkspace`/`connectWorkspace` خودشان به‌صورت داخلی و خودکار قبل از دستور اصلی یک `login`
+روی همان سوکت می‌زنند (در `openConnectionAndLogin`)؛ کاربر نیازی به تایپ دستی `login` جدا ندارد. اگر بعداً لازم شد بتوان
+`login` را هم مستقل تست کرد، باید یک متد `login()` به `CentralConnection` و یک `case "login"` به `ClientMain.dispatch`
+اضافه شود (فعلاً غیرضروری تشخیص داده شد).
+
+---
+
+## 🔶 روز ۵ (بخش persistence) — در حال طراحی، هنوز پیاده‌سازی نشده
+
+### مسئله‌ی کشف‌شده: چت‌ها روی workspaceها (سمت host) ذخیره می‌شوند، ولی workspaceها با IP/port شناخته می‌شوند که بعد از
+`shutdown` دیگر معتبر نیستند
+
+فرض کار: بعد از هر بار خاموش/روشن شدن، هاست‌ها ممکن است **کاملاً متفاوت از قبل** باشند (IP/بازه‌ی پورت متفاوت، یا اصلاً
+یک زیرمجموعه‌ی متفاوت از هاست‌های قبلی وصل شوند). پس نمی‌شود فرض کرد port قدیمی یک workspace بعد از راه‌اندازی مجدد هنوز
+معتبر است یا حتی همان host قبلی دوباره وصل می‌شود.
+
+### 🔴 تصمیم طراحی نهایی: بازیابی به‌صورت Lazy (فقط وقتی لازم شود، نه در لحظه‌ی راه‌اندازی)
+
+بازیابی workspaceهای قدیمی **در لحظه‌ی راه‌اندازی central/host انجام نمی‌شود**. به‌جایش:
+
+1. central در `shutdown`، `WorkspaceInfo`ها را ذخیره می‌کند **ولی عمداً `hostIp` را `null` و `port` را `0` می‌گذارد** (
+   صرف‌نظر از مقدار واقعی‌شان قبل از خاموشی) — چون این مقادیر بعد از راه‌اندازی مجدد دیگر معتبر نیستند. فقط `name` و
+   `creatorUserId` واقعی ذخیره می‌شوند.
+2. central و host طبق روال عادی راه‌اندازی می‌شوند (host با `create-host` وصل می‌شود، هیچ بازسازی خودکاری در این لحظه
+   اتفاق نمی‌افتد).
+3. وقتی یک کلاینت `connect-workspace <name>` می‌فرستد و central می‌بیند `WorkspaceInfo` این اسم را دارد ولی
+   `port == 0` (یعنی «هنوز هاست نشده» بعد از بارگیری از دیسک)، central به‌صورت **خودکار و شفاف برای کاربر** یک بازیابی
+   انجام می‌دهد:
+    - دقیقاً مثل یک `createWorkspace` تازه عمل می‌کند: یک host موجود پیدا می‌کند، یک port **جدید** می‌گیرد.
+    - طبق فرمت **دقیق سند** (بدون تغییر) به host می‌فرستد: `create-workspace <port> <creatorUserId>` (بدون نام —
+      همان‌طور که از قبل بوده).
+    - host طبق روال همیشگی `OK` برمی‌گرداند و یک `Workspace` خالیِ جدید می‌سازد.
+    - سپس central یک دستور **اضافه‌ی جدید** (خارج از پروتکل رسمی سند، چون فاز persistence در سند جزئیات ندارد) می‌فرستد:
+      `restore-chats <port> <name>`.
+    - host این workspace تازه‌ساخته را با `port` پیدا می‌کند، در `HostDataStore` دنبال فایل ذخیره‌شده‌ی `name` می‌گردد؛
+      اگر پیدا شد، `ChatStore`ی آن Workspace را با داده‌ی قدیمی پر می‌کند (به‌جای خالی ماندن)، و `OK` برمی‌گرداند.
+    - central حالا `WorkspaceInfo` قدیمی (با `port=0`) را با یک `WorkspaceInfo` **جدید** (با `hostIp`/`port` واقعی)
+      جایگزین می‌کند — چون `WorkspaceInfo` یک `record` (immutable) است، این جایگزینی با ساختن نمونه‌ی جدید و `put` روی
+      نقشه انجام می‌شود (دقیقاً همان الگویی که `registerWorkspaceIfAbsent` از قبل استفاده می‌کند).
+    - در پایان، جواب عادی `connect-workspace` (`OK <ip> <port> <token>`) به کلاینت داده می‌شود.
+4. اگر `WorkspaceInfo` اصلاً وجود نداشت (نه فقط `port=0`)، یعنی این واقعاً یک workspace کاملاً جدید است — رفتار دقیقاً
+   مثل همیشه (بدون `restore-chats`).
+
+### چرا این تصمیم گرفته شد (به‌جای بازیابی همه‌چیز در لحظه‌ی راه‌اندازی)
+
+- بازیابی eager (همه‌چیز موقع راه‌اندازی) نیاز داشت central خودش تصمیم بگیرد کدام workspace را روی کدام host بسازد، بدون
+  این‌که بداند کدام کلاینت واقعاً به آن نیاز دارد — کار غیرضروری و پیچیده‌تر.
+- بازیابی lazy با جریان طبیعی `connect-workspace` که از قبل وجود دارد هم‌راستا است؛ فقط یک شرط اضافه (`port == 0`) و یک
+  دستور اضافه (`restore-chats`) به آن اضافه می‌شود.
+
+### پروتکل `create-workspace` (central → host) — بدون تغییر، دقیقاً طبق سند
+
+```
+سرور مرکزی یکی از میزبان‌ها را به‌طور تصادفی و همچنین یک پورت خالی آن را انتخاب کرده
+و دستور را همراه با شناسه‌ی کاربر سازنده به آن می‌فرستد:
+create-workspace 10143 1001
+
+میزبان فضای کار را روی پورت تعیین‌شده ساخته و به سرور مرکزی تأیید می‌دهد:
+OK
+```
+
+تصمیم اولیه‌ای که مطرح شده بود («نام workspace را هم به `create-workspace` اضافه کنیم») **رد شد** چون با فرمت دقیق سند
+مغایرت داشت. به‌جایش، نام از طریق دستور اضافه‌ی `restore-chats` (فقط در حالت بازیابی) منتقل می‌شود.
+
+### دستور جدید (اضافه بر پروتکل سند، فقط برای persistence): `restore-chats <port> <name>`
+
+```
+central → host: restore-chats 10143 company1
+host → central: OK
+```
+
+- فقط زمانی فرستاده می‌شود که central تشخیص دهد این port متعلق به یک workspace **بازیابی‌شده** است (نه ساخت کاملاً
+  تازه).
+- host با `port` ورودی، `Workspace` تازه‌ساخته‌شده را پیدا می‌کند، در `HostDataStore` دنبال فایل ذخیره‌شده‌ی `name`
+  می‌گردد، و اگر پیدا شد `ChatStore` آن Workspace را با داده‌ی قدیمی پر می‌کند.
+
+### یادداشت‌های باز برای پیاده‌سازی
+
+- `WorkspaceInfo` (central/models) یک `record` است؛ چون immutable است، آپدیت `hostIp`/`port` بعد از بازیابی باید با
+  ساختن یک نمونه‌ی جدید و جایگزینی در نقشه‌ی `WorkspaceManager` انجام شود — دقیقاً همان الگویی که از قبل در
+  `registerWorkspaceIfAbsent` هست.
+- `WorkspaceManager.createWorkspace` و منطق تازه‌ی «بازیابی روی `connect-workspace`» باید تا حد ممکن کد مشترک داشته
+  باشند (پیدا کردن host، گرفتن port، فرستادن `create-workspace`) تا تکرار نشود؛ فقط تفاوت در فرستادن یا نفرستادن
+  `restore-chats` و در این‌که کدام متد (`createWorkspace` در برابر `connectWorkspace`) این منطق را صدا می‌زند.
+- ترتیب پیاده‌سازی پیشنهادی: ابتدا `DataStore` (central) با ذخیره‌ی عمدیِ `hostIp=null`/`port=0`، سپس منطق تشخیص و
+  بازیابی lazy در `WorkspaceManager`/`ClientHandler` (سمت `connect-workspace`)، سپس دستور `restore-chats` در
+  `CentralConnectionListener` (سمت host) و اتصال آن به `HostDataStore`.
+- هنوز باید تصمیم گرفته شود: `HostDataStore` دقیقاً با چه کلیدی (احتمالاً `workspaceName`) و در چه فرمتی (یک فایل
+  به‌ازای هر host، یا یک فایل به‌ازای هر workspace؟) چت‌ها را ذخیره می‌کند. طبق یادداشت روز ۵ (بخش نگارش‌شده در ابتدای
+  سند)، نام‌گذاری فایل `HostDataStore` باید بر اساس IP/پورت *شروع* میزبان باشد نه نام workspace؛ این با نیاز جدید (که هر
+  workspace باید مستقل از port قابل بازیابی باشد، چون port عوض می‌شود) در تناقض است و باید در پیاده‌سازی واقعی این تناقض
+  حل شود — به احتمال زیاد `HostDataStore` باید در داخل خودش یک نگاشت از `workspaceName` به داده‌ی چت نگه دارد (نه صرفاً
+  بر اساس فایل جدا به‌ازای هر workspace).
+
+---
+
+## 🔶 روز ۵ (بخش persistence) — تصمیمات تکمیلی
+
+### 🔴 تصمیم: پیام‌های رد و بدل شده هم باید ذخیره شوند — ولی نه در `DataStore` (central)، بلکه در `HostDataStore` (host)
+
+مرز مسئولیت دقیق بین این دو فایل ذخیره‌سازی:
+
+**`DataStore` (central) فقط شامل:**
+
+- کاربران (از `UserManager`)
+- workspaceها (از `WorkspaceManager`) — فقط `name` و `creatorUserId`؛ طبق تصمیم قبلی، `hostIp=null` و `port=0` عمداً
+  ذخیره می‌شود.
+
+**`HostDataStore` (host) شامل:**
+
+- تمام workspaceهای این host، و برای هرکدام کل `ChatStore`‌اش — یعنی تمام `Chat`ها با `List<Message>` داخلشان و
+  شمارنده‌های unread. پیام‌ها همینجا (به‌صورت غیرمستقیم، از طریق ذخیره‌ی کامل `ChatStore`) ذخیره می‌شوند؛ نیازی به یک
+  مکانیزم جدای دیگر برای پیام‌ها نیست چون از قبل بخشی از طرح `restore-chats` بود.
+
+### 🔴 تصمیم: روش ذخیره‌سازی — Serialization معمولی جاوا (نه JSON/Gson)
+
+برخلاف چت‌ها که برای پروتکل شبکه از Gson استفاده می‌کنیم، برای ذخیره‌سازی روی دیسک (`DataStore`, `HostDataStore`) از
+`Serializable` + `ObjectOutputStream`/`ObjectInputStream` استاندارد جاوا استفاده می‌شود.
+
+### کلاس‌هایی که باید `implements Serializable` بگیرند
+
+**سمت central:**
+
+- `User` (central/models)
+- `WorkspaceInfo` (central/models) — چون `record` است، باید صراحتاً نوشته شود:
+  `public record WorkspaceInfo(...) implements Serializable {}` (جاوا از `record implements Serializable` پشتیبانی
+  می‌کند).
+
+**سمت host:**
+
+- `Message` (host/models) — `record`، همان‌طور نیاز به `implements Serializable` صریح دارد.
+- `Chat` (host/models) — کلاس معمولی، نیاز به `implements Serializable` دارد. فیلدهای داخلی‌اش (`AtomicInteger`,
+  `CopyOnWriteArrayList`, `String`) همگی خودشان از قبل `Serializable` هستند، پس نیازی به تغییر بیشتر نیست.
+
+⚠️ توصیه (اختیاری ولی best-practice): هر کلاس `Serializable` بهتر است یک
+`private static final long serialVersionUID = 1L;` داشته باشد تا در صورت تغییر بعدی کلاس، خطای `InvalidClassException`
+هنگام خواندن فایل‌های قدیمی رخ ندهد.
+
+### طرح `DataStore` (central) — wrapper پیشنهادی
+
+چون `ObjectOutputStream` برای نوشتن چند ساختار داده در یک فایل به یک آبجکت واحد نیاز دارد، یک کلاس wrapper ساخته می‌شود:
+
+```java
+public record CentralPersistedState(Map<String, User> users,
+                                    Map<String, WorkspaceInfo> workspaces) implements Serializable {
+    private static final long serialVersionUID = 1L;
+}
+```
+
+`DataStore` این wrapper را با `ObjectOutputStream` می‌نویسد/می‌خواند.
+
+### یادداشت باز: متدهای export/import در managerها
+
+`UserManager` و `WorkspaceManager` باید متدهایی برای صادرات/واردات وضعیت داشته باشند (چون نقشه‌های داخلی‌شان `private`
+است):
+
+```java
+// در UserManager
+public Map<String, User> exportUsers() {
+    return new HashMap<>(users);
+}
+
+public void importUsers(Map<String, User> savedUsers) {
+    users.clear();
+    users.putAll(savedUsers);
+}
+
+// در WorkspaceManager
+public Map<String, WorkspaceInfo> exportWorkspaces() {
+    Map<String, WorkspaceInfo> result = new HashMap<>();
+    for (Map.Entry<String, WorkspaceInfo> entry : workspaces.entrySet()) {
+        WorkspaceInfo original = entry.getValue();
+        result.put(entry.getKey(), new WorkspaceInfo(original.name(), null, 0, original.creatorUserId()));
+        // hostIp=null و port=0 عمداً، طبق تصمیم اصلی بازیابی lazy
+    }
+    return result;
+}
+
+public void importWorkspaces(Map<String, WorkspaceInfo> savedWorkspaces) {
+    workspaces.clear();
+    workspaces.putAll(savedWorkspaces);
+}
+```
+
+### طرح `HostDataStore` — هنوز نهایی نشده (یادداشت باز)
+
+باید یک wrapper مشابه بسازد، احتمالاً `Map<String, ChatStore>` (کلید = `workspaceName`, نه `port`، چون طبق تصمیم قبلی
+port بعد از بازیابی عوض می‌شود). این با یادداشت اولیه‌ی روز ۵ («نام‌گذاری فایل `HostDataStore` بر اساس IP/پورت شروع
+میزبان») در تناقض بود و طبق یادداشت قبلی باید حل شود — به این نتیجه رسیدیم که کلید داخلی نگاشت باید `workspaceName`
+باشد، صرف‌نظر از این‌که خودِ فایل روی دیسک با چه نامی ذخیره می‌شود (که می‌تواند بر اساس IP/پورت شروع میزبان باشد، چون کل
+فایل مال یک host است، نه یک workspace خاص).
+
+### ترتیب باقی‌مانده برای پیاده‌سازی persistence
+
+1. اضافه کردن `Serializable` به `User`, `WorkspaceInfo`, `Message`, `Chat`.
+2. متدهای export/import به `UserManager` و `WorkspaceManager`.
+3. `CentralPersistedState` + `DataStore` (central) کامل، با متد ذخیره/بارگیری با `ObjectOutputStream`/
+   `ObjectInputStream`.
+4. اتصال `DataStore` به دستور `shutdown` در `CentralServer` (ذخیره قبل از بستن) و بارگیری در ابتدای `main`.
+5. wrapper مشابه + `HostDataStore` (host)، با کلید `workspaceName`.
+6. منطق تشخیص و بازیابی lazy در `WorkspaceManager`/`ClientHandler` سمت `connect-workspace` (چک `port == 0`).
+7. دستور `restore-chats <port> <name>` در پروتکل central→host (خارج از پروتکل رسمی سند، فقط برای persistence)، پردازش آن
+   در `CentralConnectionListener` سمت host و اتصال به `HostDataStore`.
+8. اتصال `HostDataStore` به دستور `shutdown` در `HostMain`.

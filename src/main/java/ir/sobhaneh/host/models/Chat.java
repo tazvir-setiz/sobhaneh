@@ -6,13 +6,14 @@ package ir.sobhaneh.host.models;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RequiredArgsConstructor
 @Getter
-public class Chat {
+public class Chat implements Serializable {
     private final String usernameA;
     private final String usernameB;
     private final List<Message> messages = new CopyOnWriteArrayList<>();
