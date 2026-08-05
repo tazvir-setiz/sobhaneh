@@ -4,6 +4,7 @@
 package ir.sobhaneh.host;
 
 import ir.sobhaneh.common.Connection;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
@@ -12,7 +13,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class CentralConnectionListener implements Runnable {
     private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
-
+    @Getter
     private final Connection centralConnection;
     private final HostSideWorkspaceManager hostSideWorkspaceManager;
     private final Object writeLock = new Object();

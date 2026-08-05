@@ -19,15 +19,17 @@ public class HostRegistrationSession {
     private final VerificationService verificationService;
     private final TokenManager tokenManager;
     private final WorkspaceManager workspaceManager;
+    private final ChatArchiveManager chatArchiveManager;
 
     private HostInfo pendingHost;
     private int pendingPort = -1;
 
-    public HostRegistrationSession(HostManager hostManager, WorkspaceManager workspaceManager, VerificationService verificationService, TokenManager tokenManager) {
+    public HostRegistrationSession(HostManager hostManager, WorkspaceManager workspaceManager, VerificationService verificationService, TokenManager tokenManager, ChatArchiveManager chatArchiveManager) {
         this.hostManager = hostManager;
         this.workspaceManager = workspaceManager;
         this.verificationService = verificationService;
         this.tokenManager = tokenManager;
+        this.chatArchiveManager = chatArchiveManager;
     }
 
     public void handleCreateHost(Connection connection, String ip, int startPort, int endPort) throws IOException {
@@ -84,7 +86,7 @@ public class HostRegistrationSession {
             return false;
         }
         System.out.println("[HostRegistrationSession] Host verified and confirmed: " + pendingHost.getIp());
-        HostConnectionListener listener = new HostConnectionListener(connection, tokenManager, workspaceManager);
+        HostConnectionListener listener = new HostConnectionListener(connection, tokenManager, workspaceManager, chatArchiveManager);
         pendingHost.setConnectionListener(listener);
         hostManager.confirm(pendingHost);
         connection.sendLine(RESPONSE_OK);

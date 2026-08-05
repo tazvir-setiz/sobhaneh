@@ -1,7 +1,11 @@
 package ir.sobhaneh.central;
 
+import com.google.gson.Gson;
 import ir.sobhaneh.central.models.Token;
+import ir.sobhaneh.client.CommandParser;
 import ir.sobhaneh.common.Connection;
+import ir.sobhaneh.host.ChatStore;
+import ir.sobhaneh.host.models.ChatStoreDto;
 
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
@@ -13,17 +17,19 @@ public class HostConnectionListener implements Runnable {
     private static final String RESPONSE_OK = "OK";
     private static final String ERROR_TOKEN_NOT_FOUND = "ERROR Token not found";
     private static final String ERROR_WORKSPACE_NOT_FOUND = "ERROR Workspace not found for this port";
-
+    private static final String COMMAND_PUSH_CHATS = "push-chats";
     private final Connection connection;
     private final TokenManager tokenManager;
     private final WorkspaceManager workspaceManager;
+    private final ChatArchiveManager chatArchiveManager;
     private final Object writeLock = new Object();
     private final BlockingQueue<String> pendingResponses = new LinkedBlockingQueue<>();
 
-    public HostConnectionListener(Connection connection, TokenManager tokenManager, WorkspaceManager workspaceManager) {
+    public HostConnectionListener(Connection connection, TokenManager tokenManager, WorkspaceManager workspaceManager, ChatArchiveManager chatArchiveManager) {
         this.connection = connection;
         this.tokenManager = tokenManager;
         this.workspaceManager = workspaceManager;
+        this.chatArchiveManager = chatArchiveManager;
     }
 
     @Override
@@ -48,11 +54,33 @@ public class HostConnectionListener implements Runnable {
             handleWorkspaceNameQuery(trimmed);
             return;
         }
+        if (trimmed.startsWith(COMMAND_PUSH_CHATS + " ")) {
+            handlePushChats(trimmed);
+            return;
+        }
         try {
             pendingResponses.put(line);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void handlePushChats(String line) throws IOException {
+        CommandParser commandParser = new CommandParser(line);
+        int port;
+        try {
+            port = Integer.parseInt(commandParser.getArgs()[0]);
+        } catch (NumberFormatException e) {
+            connection.sendLine("ERROR invalid port");
+            return;
+        }
+        String workspaceName = workspaceManager.findNameByPort(port);
+
+        Gson gson = new Gson();
+        ChatStoreDto chatStoreDto = gson.fromJson(commandParser.getJson(), ChatStoreDto.class);
+        ChatStore chatStore = ChatStore.fromChatStoreData(chatStoreDto);
+        chatArchiveManager.addWorkspace(workspaceName, chatStore);
+        connection.sendLine(RESPONSE_OK);
     }
 
     private void handleWhois(String line) throws IOException {

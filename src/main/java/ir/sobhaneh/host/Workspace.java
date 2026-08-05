@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Workspace {
+    @Getter
     private final int port;
     private final ServerSocket serverSocket;
     private final ConcurrentHashMap<Long, String> permanentUsernameByUserId = new ConcurrentHashMap<>();

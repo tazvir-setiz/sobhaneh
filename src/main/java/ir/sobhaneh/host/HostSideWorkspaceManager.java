@@ -3,16 +3,17 @@
 
 package ir.sobhaneh.host;
 
+import com.google.gson.Gson;
+import lombok.Setter;
+
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HostSideWorkspaceManager {
     private final ConcurrentHashMap<Integer, Workspace> workspaces = new ConcurrentHashMap<>();
+    @Setter
     private CentralConnectionListener centralConnectionListener;
-
-    public void setCentralConnectionListener(CentralConnectionListener centralConnectionListener) {
-        this.centralConnectionListener = centralConnectionListener;
-    }
 
     public String handleCreateWorkspace(int port, long userId) {
         if (workspaces.containsKey(port)) {
@@ -28,5 +29,22 @@ public class HostSideWorkspaceManager {
             System.out.println("[HostSideWorkspaceManager] Failed to create workspace on port=" + port + ": " + e.getMessage());
             return "ERROR " + e.getMessage();
         }
+    }
+
+    public List<Workspace> getWorkspaces() {
+        return (List<Workspace>) workspaces.values();
+    }
+
+    public void shutdownAndPushChats() {
+        List<Workspace> workspaces = getWorkspaces();
+        workspaces.forEach((workspace) -> {
+            try {
+                centralConnectionListener.sendAndWait("push-chats " +
+                        workspace.getPort() + " " +
+                        new Gson().toJson(workspace, Workspace.class));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

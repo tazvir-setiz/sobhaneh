@@ -13,6 +13,7 @@ public class ClientHandler implements Runnable {
     private final UserManager userManager;
     private final WorkspaceManager workspaceManager;
     private final TokenManager tokenManager;
+    private final ChatArchiveManager chatArchiveManager;
 
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
@@ -30,9 +31,10 @@ public class ClientHandler implements Runnable {
     private Long loggedInUserId = null;
 
     public ClientHandler(Socket socket, UserManager userManager, HostManager hostManager,
-                         WorkspaceManager workspaceManager, TokenManager tokenManager) {
+                         WorkspaceManager workspaceManager, TokenManager tokenManager, ChatArchiveManager chatArchiveManager) {
         this.socket = socket;
-        this.session = new HostRegistrationSession(hostManager, workspaceManager, verificationService, tokenManager);
+        this.chatArchiveManager = chatArchiveManager;
+        this.session = new HostRegistrationSession(hostManager, workspaceManager, verificationService, tokenManager, chatArchiveManager);
         this.hostManager = hostManager;
         this.userManager = userManager;
         this.workspaceManager = workspaceManager;
