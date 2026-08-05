@@ -27,7 +27,7 @@ public class Chat implements Serializable {
         this.lastSeq.set(lastSeq);
         this.unreadCountForA.set(unreadCountA);
         this.unreadCountForB.set(unreadCountB);
-        messages.stream().forEach(this::addMessage);
+        messages.forEach(this::addMessage);
     }
 
     public static String buildKey(String usernameA, String usernameB) {
