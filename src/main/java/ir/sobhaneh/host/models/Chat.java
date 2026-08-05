@@ -21,6 +21,15 @@ public class Chat implements Serializable {
     private final AtomicInteger unreadCountForA = new AtomicInteger(0);
     private final AtomicInteger unreadCountForB = new AtomicInteger(0);
 
+    public Chat(String usernameA, String usernameB, List<Message> messages, int lastSeq, int unreadCountA, int unreadCountB) {
+        this.usernameA = usernameA;
+        this.usernameB = usernameB;
+        this.lastSeq.set(lastSeq);
+        this.unreadCountForA.set(unreadCountA);
+        this.unreadCountForB.set(unreadCountB);
+        messages.stream().forEach(this::addMessage);
+    }
+
     public static String buildKey(String usernameA, String usernameB) {
         if (usernameA.compareTo(usernameB) > 0) {
             return usernameA + "-" + usernameB;
@@ -33,7 +42,7 @@ public class Chat implements Serializable {
         return lastSeq.incrementAndGet();
     }
 
-    public void setSeq(int seq) {
+    public void setLastSeq(int seq) {
         lastSeq.set(seq);
     }
 

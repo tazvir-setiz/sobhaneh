@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+
 public class ChatStore implements Serializable {
     private static final String EMPTY_JSON_ARRAY = "[]";
 
@@ -78,6 +79,21 @@ public class ChatStore implements Serializable {
         return null;
     }
 
+    public static ChatStore fromChatStoreData(ChatStoreDto data) {
+        ChatStore chatStore = new ChatStore();
+        data.chats().stream().map(chatdto -> new Chat(
+                chatdto.usernameA(),
+                chatdto.usernameB(),
+                chatdto.messages(),
+                chatdto.lastSeq(),
+                chatdto.unreadCountA(),
+                chatdto.unreadCountB())
+        ).forEach(chat -> chatStore.chatsByKey.put(
+                Chat.buildKey(chat.getUsernameA(), chat.getUsernameB()),
+                chat));
+        return chatStore;
+    }
+
     public ChatStoreDto toChatStoreData() {
         List<ChatDto> chatDtos = chatsByKey.values()
                 .stream()
@@ -85,16 +101,13 @@ public class ChatStore implements Serializable {
                         chat.getUsernameA(),
                         chat.getUsernameB(),
                         chat.getMessages(),
+                        chat.getLastSeq().intValue(),
                         chat.getUnreadCountFor(chat.getUsernameA()),
                         chat.getUnreadCountFor(chat.getUsernameB())
                 ))
                 .collect(Collectors.toList());
         ChatStoreDto newChatStoreDto = new ChatStoreDto(chatDtos);
         return newChatStoreDto;
-    }
-
-    public void fromChatStoreData(ChatStoreDto data) {
-
     }
 
 
