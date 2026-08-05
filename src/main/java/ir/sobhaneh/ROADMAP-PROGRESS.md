@@ -1066,7 +1066,6 @@ public class Chat {
 `clearUnreadFor` تمام پیام‌های خوانده‌نشده‌ی *قبلی* آن گفتگو را هم پاک می‌کرد، نه فقط همین پیام تازه. **تصمیم نهاییِ
 درست:** یک متد جدید `decrementUnreadFor` اضافه شد که فقط **یکی کم** می‌کند (نه صفر). منطق نهایی در
 `ChatStore.addMessage`:
-
 1. `chat.incrementUnreadFor(to)` — همیشه، بدون قید و شرط.
 2. اگر `recipientOnline == true`، بلافاصله `chat.decrementUnreadFor(to)` هم صدا زده شود — که خالص این دو عملیات با هم
    صفر می‌شود (یعنی همین پیام تازه اثری روی شمارنده نمی‌گذارد)، بدون این‌که به unreadهای قدیمی‌تر آن گفتگو دست بزند.
@@ -1170,11 +1169,9 @@ public class ChatStore {
 اتصال بعدی دوباره `username?` می‌پرسید — با این‌که کاربر قبلاً یک‌بار اسم انتخاب کرده بود.
 
 **راه‌حل:** یک نقشه‌ی **دائمی و جدا** به `Workspace` اضافه شد که با `disconnect` پاک نمی‌شود:
-
 ```java
 private final ConcurrentHashMap<Long, String> permanentUsernameByUserId = new ConcurrentHashMap<>();
 ```
-
 - `addSession` این نقشه را هم پر می‌کند (علاوه بر نقشه‌های آنلاین).
 - `findExistingUsername` از این نقشه‌ی دائمی می‌خواند (نه از `onlineSessionsByUserId`).
 - `removeSession` بدون تغییر مانده — فقط نقشه‌های آنلاین را پاک می‌کند، نقشه‌ی دائمی دست‌نخورده می‌ماند.
@@ -1216,7 +1213,6 @@ public void removeSession(long userId, String username) {
 ### `ClientConnection` نسخه‌ی نهایی ✅ — حلقه‌ی کامل پردازش دستورها
 
 ```java
-
 @Override
 public void run() {
     try {
@@ -1298,7 +1294,6 @@ Thread فرستنده (نه Thread گیرنده) روی سوکت گیرنده ن
 ### ✅ سناریوهای تست‌شده و تأییدشده
 
 **تست ۱ — دو کاربر آنلاین:**
-
 - ارسال/دریافت پیام دوطرفه با `receive-message` لحظه‌ای ✅
 - `seq` افزایشی و درست بین دو کاربر خاص ✅
 - `get-chats` با `unread_count: 0` (چون هر دو آنلاین بودند) ✅
@@ -1306,7 +1301,6 @@ Thread فرستنده (نه Thread گیرنده) روی سوکت گیرنده ن
 - `disconnect` ✅
 
 **تست ۲ — گیرنده‌ی آفلاین:**
-
 - ارسال چند پیام به گیرنده‌ی آفلاین (بدون push، فقط ذخیره) ✅
 - `unread_count` درست افزایش پیدا کرد برای گیرنده ✅
 - `unread_count` برای فرستنده صفر ماند (چون این unread مال جهت دیگری‌ست) ✅
@@ -1345,16 +1339,16 @@ Thread فرستنده (نه Thread گیرنده) روی سوکت گیرنده ن
    `port == 0` (یعنی «هنوز هاست نشده» بعد از بارگیری از دیسک)، central به‌صورت **خودکار و شفاف برای کاربر** یک بازیابی
    انجام می‌دهد:
     - دقیقاً مثل یک `createWorkspace` تازه عمل می‌کند: یک host موجود پیدا می‌کند، یک port **جدید** می‌گیرد.
-    - طبق فرمت **دقیق سند** (بدون تغییر) به host می‌فرستد: `create-workspace <port> <creatorUserId>` (بدون نام —
-      همان‌طور که از قبل بوده).
+   - طبق فرمت **دقیق سند** (بدون تغییر) به host می‌فرستد: `create-workspace <port> <creatorUserId>` (بدون نام — همان‌طور
+     که از قبل بوده).
     - host طبق روال همیشگی `OK` برمی‌گرداند و یک `Workspace` خالیِ جدید می‌سازد.
-    - سپس central یک دستور **اضافه‌ی جدید** (خارج از پروتکل رسمی سند، چون فاز persistence در سند جزئیات ندارد) می‌فرستد:
-      `restore-chats <port> <name>`.
-    - host این workspace تازه‌ساخته را با `port` پیدا می‌کند، در `HostDataStore` دنبال فایل ذخیره‌شده‌ی `name` می‌گردد؛
-      اگر پیدا شد، `ChatStore`ی آن Workspace را با داده‌ی قدیمی پر می‌کند (به‌جای خالی ماندن)، و `OK` برمی‌گرداند.
-    - central حالا `WorkspaceInfo` قدیمی (با `port=0`) را با یک `WorkspaceInfo` **جدید** (با `hostIp`/`port` واقعی)
-      جایگزین می‌کند — چون `WorkspaceInfo` یک `record` (immutable) است، این جایگزینی با ساختن نمونه‌ی جدید و `put` روی
-      نقشه انجام می‌شود (دقیقاً همان الگویی که `registerWorkspaceIfAbsent` از قبل استفاده می‌کند).
+   - سپس central یک دستور **اضافه‌ی جدید** (خارج از پروتکل رسمی سند، چون فاز persistence در سند جزئیات ندارد) می‌فرستد:
+     `restore-chats <port> <name>`.
+   - host این workspace تازه‌ساخته را با `port` پیدا می‌کند، در `HostDataStore` دنبال فایل ذخیره‌شده‌ی `name` می‌گردد؛
+     اگر پیدا شد، `ChatStore`ی آن Workspace را با داده‌ی قدیمی پر می‌کند (به‌جای خالی ماندن)، و `OK` برمی‌گرداند.
+   - central حالا `WorkspaceInfo` قدیمی (با `port=0`) را با یک `WorkspaceInfo` **جدید** (با `hostIp`/`port` واقعی)
+     جایگزین می‌کند — چون `WorkspaceInfo` یک `record` (immutable) است، این جایگزینی با ساختن نمونه‌ی جدید و `put` روی
+     نقشه انجام می‌شود (دقیقاً همان الگویی که `registerWorkspaceIfAbsent` از قبل استفاده می‌کند).
     - در پایان، جواب عادی `connect-workspace` (`OK <ip> <port> <token>`) به کلاینت داده می‌شود.
 4. اگر `WorkspaceInfo` اصلاً وجود نداشت (نه فقط `port=0`)، یعنی این واقعاً یک workspace کاملاً جدید است — رفتار دقیقاً
    مثل همیشه (بدون `restore-chats`).
@@ -1419,7 +1413,6 @@ host → central: OK
 مرز مسئولیت دقیق بین این دو فایل ذخیره‌سازی:
 
 **`DataStore` (central) فقط شامل:**
-
 - کاربران (از `UserManager`)
 - workspaceها (از `WorkspaceManager`) — فقط `name` و `creatorUserId`؛ طبق تصمیم قبلی، `hostIp=null` و `port=0` عمداً
   ذخیره می‌شود.
@@ -1438,14 +1431,12 @@ host → central: OK
 ### کلاس‌هایی که باید `implements Serializable` بگیرند
 
 **سمت central:**
-
 - `User` (central/models)
 - `WorkspaceInfo` (central/models) — چون `record` است، باید صراحتاً نوشته شود:
   `public record WorkspaceInfo(...) implements Serializable {}` (جاوا از `record implements Serializable` پشتیبانی
   می‌کند).
 
 **سمت host:**
-
 - `Message` (host/models) — `record`، همان‌طور نیاز به `implements Serializable` صریح دارد.
 - `Chat` (host/models) — کلاس معمولی، نیاز به `implements Serializable` دارد. فیلدهای داخلی‌اش (`AtomicInteger`,
   `CopyOnWriteArrayList`, `String`) همگی خودشان از قبل `Serializable` هستند، پس نیازی به تغییر بیشتر نیست.
@@ -1520,3 +1511,220 @@ port بعد از بازیابی عوض می‌شود). این با یادداش�
 7. دستور `restore-chats <port> <name>` در پروتکل central→host (خارج از پروتکل رسمی سند، فقط برای persistence)، پردازش آن
    در `CentralConnectionListener` سمت host و اتصال به `HostDataStore`.
 8. اتصال `HostDataStore` به دستور `shutdown` در `HostMain`.
+
+---
+
+## 🔶 روز ۵ (بخش persistence) — پیشرفت پیاده‌سازی central + تصمیم نهایی درباره‌ی اسم workspace در host
+
+### ✅ `DataStore` (central) — کامل و تست شد
+
+فایل‌های نهایی:
+
+```
+central/persistence/CentralPersistedState.java   ✅
+central/persistence/DataStore.java                ✅
+```
+
+`CentralPersistedState` دقیقاً طبق طرح قبلی (wrapper با دو `Map`) پیاده شد.
+
+`DataStore` نهایی:
+
+```java
+package ir.sobhaneh.central.persistence;
+
+import ir.sobhaneh.central.UserManager;
+import ir.sobhaneh.central.WorkspaceManager;
+
+import java.io.*;
+
+public class DataStore {
+    private static final String FILE_PATH = "central-data.ser";
+
+    public void save(UserManager userManager, WorkspaceManager workspaceManager) throws IOException {
+        CentralPersistedState state = new CentralPersistedState(userManager.exportUsers(), workspaceManager.exportWorkspaces());
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_PATH))) {
+            oos.writeObject(state);
+        }
+    }
+
+    public void load(UserManager userManager, WorkspaceManager workspaceManager) {
+        File file = new File(FILE_PATH);
+        if (!file.exists()) return;
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            CentralPersistedState state = (CentralPersistedState) ois.readObject();
+            userManager.importUsers(state.getUsers());
+            workspaceManager.importWorkspaces(state.getWorkspaces());
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+(نسخه‌ی نهایی، بعد از رفع باگ زیر — لاگ‌های دیباگ که برای پیدا کردن باگ اضافه شده بودند حذف شدند، ولی می‌توانند دوباره
+اضافه شوند اگر لازم شد.)
+
+### 🐛 باگ کشف‌شده و رفع‌شده: parameter shadowing در `UserManager.importUsers`
+
+**علت:** پارامتر ورودی متد هم‌نام فیلد کلاس بود:
+
+```java
+// نسخه‌ی معیوب:
+public void importUsers(Map<String, User> users) {
+    users.clear();              // این "users" پارامتر ورودی است، نه فیلد کلاس! (shadowing)
+    this.users.putAll(users);   // چون بالا خودش را خالی کردیم، اینجا از یک map خالی پر می‌کنیم
+}
+```
+
+نتیجه: بعد از هر `importUsers`، فیلد اصلی `users` کلاس همیشه خالی می‌ماند، حتی وقتی داده از فایل درست خوانده شده بود (که
+با لاگ‌گیری دقیق کشف شد: `Users read: [...]` پر بود ولی `Users after import: []` خالی بود).
+
+**راه‌حل:** اسم پارامتر ورودی عوض شد تا با فیلد کلاس تداخل نکند:
+
+```java
+public void importUsers(Map<String, User> savedUsers) {
+    users.clear();
+    this.users.putAll(savedUsers);
+}
+```
+
+⚠️ **یادداشت عمومی برای بقیه‌ی import/export متدها:** این الگوی shadowing می‌تواند در هر متدی که پارامترش هم‌نام فیلد
+کلاس باشد رخ دهد؛ در `WorkspaceManager.importWorkspaces` هم باید حتماً همین نکته چک شود (پارامتر باید نامی متفاوت از
+فیلد `workspaces` داشته باشد).
+
+### ✅ `CentralServer.java` — بارگیری اولیه + دستور `shutdown` (کامل و تست شد)
+
+پیش‌نیاز این کار: `UserManager`, `HostManager`, `WorkspaceManager`, `TokenManager` از حالت `private static final` داخل
+`ClientHandler` بیرون آورده شدند و از طریق **constructor** به هر `ClientHandler` جدید تزریق می‌شوند (به‌جای این‌که خودِ
+`ClientHandler` بسازدشان). این یک تغییر معماری میانی بود، جدا از خودِ persistence، ولی برایش لازم شد تا `CentralServer`
+بتواند این manager ها را از بیرون بسازد، به `DataStore.load` بدهد، و بین همه‌ی کانکشن‌ها مشترک نگه دارد.
+
+```java
+public static void main(String[] args) {
+    UserManager userManager = new UserManager();
+    HostManager hostManager = new HostManager();
+    WorkspaceManager workspaceManager = new WorkspaceManager();
+    TokenManager tokenManager = new TokenManager();
+
+    DataStore dataStore = new DataStore();
+    dataStore.load(userManager, workspaceManager);
+
+    try {
+        ServerSocket serverSocket = new ServerSocket(PORT);
+        startShutdownListener(dataStore, userManager, workspaceManager, serverSocket);
+        while (true) {
+            Socket socket = serverSocket.accept();
+            new Thread(new ClientHandler(socket, userManager, hostManager, workspaceManager, tokenManager)).start();
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+private static void startShutdownListener(DataStore dataStore, UserManager userManager,
+                                          WorkspaceManager workspaceManager, ServerSocket serverSocket) {
+    Thread shutdownThread = new Thread(() -> {
+        BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
+        String line;
+        try {
+            while ((line = console.readLine()) != null) {
+                if ("shutdown".equals(line.trim())) {
+                    dataStore.save(userManager, workspaceManager);
+                    System.out.println("Saved. Shutting down.");
+                    serverSocket.close();
+                    System.exit(0);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    });
+    shutdownThread.setDaemon(true);
+    shutdownThread.start();
+}
+```
+
+⚠️ **نکات طراحی:**
+
+- Thread جدا (`daemon`) برای خواندن `shutdown` از کنسول لازم بود چون `serverSocket.accept()` خودش یک حلقه‌ی بلاک‌کننده
+  در Thread اصلی است؛ نمی‌شد همان Thread را برای خواندن کنسول هم استفاده کرد.
+- `serverSocket.close()` قبل از `System.exit(0)` برای بستن تمیزتر (باعث می‌شود `accept()` در Thread اصلی هم با یک
+  `SocketException` خارج شود، هرچند `System.exit` به‌تنهایی هم کافی است).
+
+### تست کامل و تأییدشده
+
+central روشن شد، چند کاربر register شدند، `shutdown` زده شد، central دوباره روشن شد، و `login` با همان کاربر قبلی (بدون
+register مجدد) موفق برگشت `OK`.
+
+---
+
+## 🔴 تصمیم طراحی نهایی: چطور host (در لحظه‌ی `shutdown`) اسم هر Workspace را بفهمد
+
+### مسئله
+
+`Workspace` (سمت host) فقط با `port` شناخته می‌شود (تصمیم قدیمی روز ۲/۳: پروتکل `create-workspace` هرگز اسم را به host
+نمی‌فرستد). اما برای `HostDataStore`، باید بشود چت‌های هر Workspace را با یک کلید **پایدار و مستقل از port** (یعنی
+`workspaceName`) ذخیره کرد — چون طبق تصمیم بازیابی lazy، port بعد از هر بازیابی عوض می‌شود.
+
+### گزینه‌ی رد شده: همیشه اسم را همراه `create-workspace` بفرستیم
+
+این یعنی تغییر پروتکل رسمی سند (`create-workspace <port> <userId>` باید `<name>` هم بگیرد) — **رد شد** چون با فرمت دقیق
+سند مغایرت داشت.
+
+### 🔴 تصمیم نهایی: پرسیدن اسم فقط در لحظه‌ی `shutdown`، به‌صورت یک query جداگانه از host به central
+
+پروتکل رسمی `create-workspace` بدون تغییر باقی می‌ماند (طبق سند). به‌جایش، فقط وقتی host دستور `shutdown` می‌گیرد، برای
+هر `Workspace`ی که دارد (که فقط `port` می‌شناسد)، یک درخواست جداگانه به central می‌زند:
+
+```
+host → central: workspace-name <port>
+central → host: OK <name>
+```
+
+این یک دستور *host-initiated* روی همان کانال دائمی central↔host است — پس دقیقاً مثل الگوی `whois`، باید مستقیماً داخل
+`HostConnectionListener` (سمت central) پردازش شود، نه از طریق `ClientHandler`.
+
+### پیامدهای این تصمیم برای پیاده‌سازی
+
+1. **`WorkspaceManager` (central) نیاز به یک متد جدید دارد:**
+   ```java
+   public String findNameByPort(int port) {
+       for (WorkspaceInfo info : workspaces.values()) {
+           if (info.port() == port) {
+               return info.name();
+           }
+       }
+       return null;
+   }
+   ```
+   (پیمایش خطی روی `values()` چون نقشه‌ی اصلی بر اساس `name` ایندکس شده، نه `port`.)
+
+2. **`HostConnectionListener` باید دستور `workspace-name` را مثل `whois` مستقیم پردازش کند** (خط جدید در
+   `handleIncomingLine`، یک متد جدید `handleWorkspaceNameQuery` که `workspaceManager.findNameByPort(port)` را صدا می‌زند
+   و `OK <name>` یا `ERROR ...` برمی‌گرداند).
+
+3. **سمت host، منطق `shutdown` قبل از صدا زدن `HostDataStore.save`، باید برای هر Workspace این query را بزند** (از طریق
+   `centralConnectionListener.sendAndWait("workspace-name " + port)`)، نتیجه را به‌عنوان کلید (`workspaceName`) برای
+   همان `Workspace`ی `ChatStore` استفاده کند، و نگاشت نهایی (`Map<String, ChatStore>`، کلید = اسم) را به
+   `HostDataStore.save` بدهد.
+
+### چرا این روش بهتر از فرستادن اسم همیشه (در لحظه‌ی ساخت) بود
+
+- پروتکل زمان اجرا (`create-workspace`) کاملاً طبق سند باقی می‌ماند، بدون هیچ افزودنی.
+- overhead این query فقط یک‌بار، دقیقاً وقتی لازم است (شروع فرآیند `shutdown`) رخ می‌دهد — نه هر بار که یک Workspace
+  ساخته می‌شود.
+- `Workspace` مجبور نیست دائماً یک فیلد `name` حمل کند که در تمام عمر برنامه فقط یک‌بار (در لحظه‌ی shutdown) واقعاً
+  استفاده می‌شود.
+
+### ترتیب باقی‌مانده برای تکمیل persistence
+
+1. ✅ `Serializable` روی کلاس‌ها
+2. ✅ export/import در managerها (central) — با رفع باگ shadowing
+3. ✅ `CentralPersistedState` + `DataStore` (central)
+4. ✅ اتصال `DataStore` به `shutdown`/بارگیری اولیه central (شامل انتقال manager ها به constructor `ClientHandler`)
+5. 🔲 `WorkspaceManager.findNameByPort` + دستور `workspace-name` در `HostConnectionListener`
+6. 🔲 wrapper + `HostDataStore` (host)، با کلید `workspaceName`
+7. 🔲 اتصال `HostDataStore` به دستور `shutdown` در `HostMain` (شامل query زدن `workspace-name` برای هر Workspace قبل از
+   ذخیره)
+8. 🔲 منطق تشخیص و بازیابی lazy در `WorkspaceManager`/`ClientHandler` سمت central (چک `port == 0` در `connect-workspace`)
+9. 🔲 دستور `restore-chats <port> <name>` (central→host، فقط در حالت بازیابی) و اتصال آن به `HostDataStore` سمت host

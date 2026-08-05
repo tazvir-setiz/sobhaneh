@@ -8,11 +8,11 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class ClientHandler implements Runnable {
-    private static final HostManager hostManager = new HostManager();
     private static final VerificationService verificationService = new VerificationService();
-    private static final UserManager userManager = new UserManager();
-    private static final WorkspaceManager workspaceManager = new WorkspaceManager();
-    private static final TokenManager tokenManager = new TokenManager();
+    private final HostManager hostManager;
+    private final UserManager userManager;
+    private final WorkspaceManager workspaceManager;
+    private final TokenManager tokenManager;
 
     private static final String COMMAND_CREATE_HOST = "create-host";
     private static final String COMMAND_CHECK = "check";
@@ -29,9 +29,14 @@ public class ClientHandler implements Runnable {
 
     private Long loggedInUserId = null;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket socket, UserManager userManager, HostManager hostManager,
+                         WorkspaceManager workspaceManager, TokenManager tokenManager) {
         this.socket = socket;
         this.session = new HostRegistrationSession(hostManager, verificationService, tokenManager);
+        this.hostManager = hostManager;
+        this.userManager = userManager;
+        this.workspaceManager = workspaceManager;
+        this.tokenManager = tokenManager;
         System.out.println("[ClientHandler] New connection from " + socket.getRemoteSocketAddress());
     }
 
