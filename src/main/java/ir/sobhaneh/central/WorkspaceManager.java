@@ -6,6 +6,7 @@ package ir.sobhaneh.central;
 import ir.sobhaneh.central.models.HostInfo;
 import ir.sobhaneh.central.models.WorkspaceInfo;
 import ir.sobhaneh.host.ChatStore;
+import ir.sobhaneh.host.models.ChatStoreDto;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -158,10 +159,13 @@ public class WorkspaceManager {
 
         ChatStore archivedChatStore = chatArchiveManager.getWorkspaceChatStore(oldInfo.name());
         if (archivedChatStore != null) {
-            String json = new ir.sobhaneh.host.JsonMapper().chatStoreDataToJson(archivedChatStore.toChatStoreData());
+            Map<Long, String> archivedUsernames = chatArchiveManager.getWorkspaceUsernames(oldInfo.name());
+            System.out.println("[DEBUG] archivedUsernames for " + oldInfo.name() + " = " + archivedUsernames);
+            ChatStoreDto dtoToSend = archivedChatStore.toChatStoreData(archivedUsernames);
+            String json = new ir.sobhaneh.host.JsonMapper().chatStoreDataToJson(dtoToSend);
+            System.out.println("[DEBUG] restore-chats json = " + json);
             String restoreResponse = reservation.host().getConnectionListener()
                     .sendAndWait("restore-chats " + reservation.port() + " " + json);
-            System.out.println("[WorkspaceManager] restore-chats response: " + restoreResponse);
         }
 
         WorkspaceInfo newInfo = buildWorkspaceInfo(oldInfo.name(), reservation, oldInfo.creatorUserId());

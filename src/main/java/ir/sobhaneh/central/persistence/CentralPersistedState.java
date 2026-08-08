@@ -10,5 +10,6 @@ import java.util.Map;
 
 public record CentralPersistedState(Map<String, User> users,
                                     Map<String, WorkspaceInfo> workspaces,
-                                    Map<String, ChatStore> workspacesChats) implements Serializable {
+                                    Map<String, ChatStore> workspacesChats,
+                                    Map<String, Map<Long, String>> workspacesUsernames) implements Serializable {
 }

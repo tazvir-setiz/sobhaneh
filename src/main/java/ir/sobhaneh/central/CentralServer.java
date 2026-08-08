@@ -26,8 +26,9 @@ public class CentralServer {
         DataStore dataStore = new DataStore();
         dataStore.load(userManager, workspaceManager, chatArchiveManager);
 
+        ServerSocket serverSocket = null;
         try {
-            ServerSocket serverSocket = new ServerSocket(PORT);
+            serverSocket = new ServerSocket(PORT);
             System.out.println("Central server listening on port " + PORT);
 
             startShutdownListener(dataStore, userManager, hostManager, workspaceManager, chatArchiveManager, serverSocket);
@@ -37,7 +38,10 @@ public class CentralServer {
                 new Thread(new ClientHandler(socket, userManager, hostManager, workspaceManager, tokenManager, chatArchiveManager)).start();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            if (!serverSocket.isClosed()) {
+                e.printStackTrace();
+            }
+
         }
     }
     private static void startShutdownListener(DataStore dataStore, UserManager userManager,
@@ -78,8 +82,10 @@ public class CentralServer {
                 if (response != null && response.startsWith("OK ")) {
                     String json = response.substring(3);
                     ChatStoreDto dto = new ir.sobhaneh.host.JsonMapper().chatStoreDataFromJson(json);
+                    System.out.println("[DEBUG] collected usernameByUserId = " + dto.usernameByUserId());
                     ChatStore chatStore = ChatStore.fromChatStoreData(dto);
                     chatArchiveManager.addWorkspace(info.name(), chatStore);
+                    chatArchiveManager.addWorkspaceUsernames(info.name(), dto.usernameByUserId());
                 }
             } catch (IOException e) {
                 e.printStackTrace();

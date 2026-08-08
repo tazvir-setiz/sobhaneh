@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Workspace {
@@ -56,6 +57,16 @@ public class Workspace {
     public void removeSession(long userId, String username) {
         onlineSessionsByUserId.remove(userId);
         userIdByUsername.remove(username);
+    }
+
+    public Map<Long, String> exportUsernames() {
+        return new java.util.HashMap<>(permanentUsernameByUserId);
+    }
+
+    public void importUsernames(Map<Long, String> usernames) {
+        if (usernames != null) {
+            permanentUsernameByUserId.putAll(usernames);
+        }
     }
 
     private void acceptLoop() {

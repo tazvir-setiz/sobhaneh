@@ -139,6 +139,7 @@ public class ClientConnection implements Runnable {
 
     private String resolveUsername(long userId) throws IOException {
         String existingUsername = workspace.findExistingUsername(userId);
+        System.out.println("[DEBUG] resolveUsername userId=" + userId + " existingUsername=" + existingUsername);
         if (existingUsername != null) {
             connection.sendLine("OK");
             return existingUsername;

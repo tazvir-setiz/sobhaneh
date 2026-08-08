@@ -9,6 +9,7 @@ import lombok.Setter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class HostSideWorkspaceManager {
@@ -55,8 +56,12 @@ public class HostSideWorkspaceManager {
             return false;
         }
         ChatStoreDto dto = new JsonMapper().chatStoreDataFromJson(json);
+        System.out.println("[DEBUG] restoreChatStore received usernameByUserId = " + dto.usernameByUserId());
+
         ChatStore restored = ChatStore.fromChatStoreData(dto);
         workspace.setChatStore(restored);
+        workspace.importUsernames(dto.usernameByUserId());
+        System.out.println("[DEBUG] workspace permanentUsernameByUserId after import = " + workspace.exportUsernames());
         return true;
     }
 
@@ -65,7 +70,9 @@ public class HostSideWorkspaceManager {
         if (workspace == null) {
             return null;
         }
-        ChatStoreDto dto = workspace.getChatStore().toChatStoreData();
+        Map<Long, String> usernames = workspace.exportUsernames();
+        System.out.println("[DEBUG] getChatStoreJson port=" + port + " usernames=" + usernames);
+        ChatStoreDto dto = workspace.getChatStore().toChatStoreData(usernames);
         return new JsonMapper().chatStoreDataToJson(dto);
     }
 }

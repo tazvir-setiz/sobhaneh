@@ -8,6 +8,7 @@ import ir.sobhaneh.host.models.*;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -94,7 +95,7 @@ public class ChatStore implements Serializable {
         return chatStore;
     }
 
-    public ChatStoreDto toChatStoreData() {
+    public ChatStoreDto toChatStoreData(Map<Long, String> usernameByUserId) {
         List<ChatDto> chatDtos = chatsByKey.values()
                 .stream()
                 .map(chat -> new ChatDto(
@@ -106,8 +107,7 @@ public class ChatStore implements Serializable {
                         chat.getUnreadCountFor(chat.getUsernameB())
                 ))
                 .collect(Collectors.toList());
-        ChatStoreDto newChatStoreDto = new ChatStoreDto(chatDtos);
-        return newChatStoreDto;
+        return new ChatStoreDto(chatDtos, usernameByUserId);
     }
 
 
