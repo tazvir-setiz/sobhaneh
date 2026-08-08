@@ -13,6 +13,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class CentralConnectionListener implements Runnable {
     private static final String COMMAND_CREATE_WORKSPACE = "create-workspace";
+    private static final String COMMAND_GET_CHAT_STORE = "get-chat-store";
+    private static final String COMMAND_RESTORE_CHATS = "restore-chats";
     @Getter
     private final Connection centralConnection;
     private final HostSideWorkspaceManager hostSideWorkspaceManager;
@@ -46,11 +48,37 @@ public class CentralConnectionListener implements Runnable {
             dispatchCreateWorkspace(trimmed);
             return;
         }
+        if (trimmed.startsWith(COMMAND_GET_CHAT_STORE + " ")) {
+            dispatchGetChatStore(trimmed);
+            return;
+        }
+        if (trimmed.startsWith(COMMAND_RESTORE_CHATS + " ")) {
+            dispatchRestoreChats(trimmed);
+            return;
+        }
         try {
             pendingResponses.put(line);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private void dispatchRestoreChats(String line) throws IOException {
+        String[] parts = line.split("\\s+", 3);
+        if (parts.length != 3) {
+            centralConnection.sendLine("ERROR Usage: restore-chats <port> <json>");
+            return;
+        }
+        int port;
+        try {
+            port = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            centralConnection.sendLine("ERROR Invalid port number");
+            return;
+        }
+        String json = parts[2];
+        boolean success = hostSideWorkspaceManager.restoreChatStore(port, json);
+        centralConnection.sendLine(success ? "OK" : "ERROR Workspace not found for this port");
     }
 
     private void dispatchCreateWorkspace(String line) throws IOException {
@@ -75,6 +103,23 @@ public class CentralConnectionListener implements Runnable {
         centralConnection.sendLine(result);
     }
 
+    private void dispatchGetChatStore(String line) throws IOException {
+        String[] parts = line.split("\\s+");
+        int port;
+        try {
+            port = Integer.parseInt(parts[1]);
+        } catch (NumberFormatException e) {
+            centralConnection.sendLine("ERROR Invalid port number");
+            return;
+        }
+        String json = hostSideWorkspaceManager.getChatStoreJson(port);
+        if (json == null) {
+            centralConnection.sendLine("ERROR Workspace not found for this port");
+            return;
+        }
+        centralConnection.sendLine("OK " + json);
+    }
+
     public String sendAndWait(String command) throws IOException {
         synchronized (writeLock) {
             System.out.println("[CentralConnectionListener] Sending to central: " + command);
@@ -89,5 +134,6 @@ public class CentralConnectionListener implements Runnable {
             }
         }
     }
+
 
 }

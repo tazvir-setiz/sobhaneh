@@ -4,6 +4,7 @@
 package ir.sobhaneh.host;
 
 import com.google.gson.Gson;
+import ir.sobhaneh.host.models.ChatStoreDto;
 import lombok.Setter;
 
 import java.io.IOException;
@@ -46,5 +47,25 @@ public class HostSideWorkspaceManager {
                 e.printStackTrace();
             }
         });
+    }
+
+    public boolean restoreChatStore(int port, String json) {
+        Workspace workspace = workspaces.get(port);
+        if (workspace == null) {
+            return false;
+        }
+        ChatStoreDto dto = new JsonMapper().chatStoreDataFromJson(json);
+        ChatStore restored = ChatStore.fromChatStoreData(dto);
+        workspace.setChatStore(restored);
+        return true;
+    }
+
+    public String getChatStoreJson(int port) {
+        Workspace workspace = workspaces.get(port);
+        if (workspace == null) {
+            return null;
+        }
+        ChatStoreDto dto = workspace.getChatStore().toChatStoreData();
+        return new JsonMapper().chatStoreDataToJson(dto);
     }
 }

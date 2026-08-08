@@ -1,6 +1,10 @@
 package ir.sobhaneh.central;
 
+import ir.sobhaneh.central.models.HostInfo;
+import ir.sobhaneh.central.models.WorkspaceInfo;
 import ir.sobhaneh.central.persistence.DataStore;
+import ir.sobhaneh.host.ChatStore;
+import ir.sobhaneh.host.models.ChatStoreDto;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,7 +30,7 @@ public class CentralServer {
             ServerSocket serverSocket = new ServerSocket(PORT);
             System.out.println("Central server listening on port " + PORT);
 
-            startShutdownListener(dataStore, userManager, workspaceManager, chatArchiveManager, serverSocket);
+            startShutdownListener(dataStore, userManager, hostManager, workspaceManager, chatArchiveManager, serverSocket);
 
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -36,15 +40,16 @@ public class CentralServer {
             e.printStackTrace();
         }
     }
-
     private static void startShutdownListener(DataStore dataStore, UserManager userManager,
-                                              WorkspaceManager workspaceManager, ChatArchiveManager chatArchiveManager, ServerSocket serverSocket) {
+                                              HostManager hostManager, WorkspaceManager workspaceManager,
+                                              ChatArchiveManager chatArchiveManager, ServerSocket serverSocket) {
         Thread shutdownThread = new Thread(() -> {
             BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
             String line;
             try {
                 while ((line = console.readLine()) != null) {
                     if (COMMAND_SHUTDOWN.equals(line.trim())) {
+                        collectChatsBeforeShutdown(workspaceManager, hostManager, chatArchiveManager);
                         dataStore.save(userManager, workspaceManager, chatArchiveManager);
                         System.out.println("Saved. Shutting down.");
                         serverSocket.close();
@@ -57,5 +62,37 @@ public class CentralServer {
         });
         shutdownThread.setDaemon(true);
         shutdownThread.start();
+    }
+
+    private static void collectChatsBeforeShutdown(WorkspaceManager workspaceManager,
+                                                   HostManager hostManager,
+                                                   ChatArchiveManager chatArchiveManager) {
+        for (WorkspaceInfo info : workspaceManager.getAllWorkspacesRaw()) {
+            if (info.port() == 0) continue;
+            HostInfo host = findHostByIpAndPort(hostManager, info.hostIp(), info.port());
+            if (host == null) {
+                continue;
+            }
+            try {
+                String response = host.getConnectionListener().sendAndWait("get-chat-store " + info.port());
+                if (response != null && response.startsWith("OK ")) {
+                    String json = response.substring(3);
+                    ChatStoreDto dto = new ir.sobhaneh.host.JsonMapper().chatStoreDataFromJson(json);
+                    ChatStore chatStore = ChatStore.fromChatStoreData(dto);
+                    chatArchiveManager.addWorkspace(info.name(), chatStore);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private static HostInfo findHostByIpAndPort(HostManager hostManager, String ip, int port) {
+        for (HostInfo h : hostManager.getRegisteredHosts()) {
+            if (h.getIp().equals(ip) && port >= h.getStartPort() && port <= h.getEndPort()) {
+                return h;
+            }
+        }
+        return null;
     }
 }

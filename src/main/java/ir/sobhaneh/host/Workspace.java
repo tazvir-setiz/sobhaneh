@@ -3,6 +3,7 @@ package ir.sobhaneh.host;
 import ir.sobhaneh.common.Connection;
 import ir.sobhaneh.host.models.UserSession;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -20,7 +21,8 @@ public class Workspace {
 
     private final ConcurrentHashMap<String, Long> userIdByUsername = new ConcurrentHashMap<>();
     @Getter
-    private final ChatStore chatStore = new ChatStore();
+    @Setter
+    private ChatStore chatStore = new ChatStore();
 
     public Workspace(int port, CentralConnectionListener centralConnectionListener) throws IOException {
         this.port = port;

@@ -151,24 +151,29 @@ public class ClientHandler implements Runnable {
             return;
         }
         if (loggedInUserId == null) {
-            System.out.println("[ClientHandler] connect-workspace rejected: not logged in");
             connection.sendLine("ERROR Not logged in");
             return;
         }
         String workspaceName = parts[1];
         WorkspaceInfo workspace = workspaceManager.findByName(workspaceName);
         if (workspace == null) {
-            System.out.println("[ClientHandler] connect-workspace: workspace not found: " + workspaceName);
             connection.sendLine("ERROR workspace not found");
             return;
         }
+
+        if (workspace.port() == 0) {
+            System.out.println("[ClientHandler] Workspace needs restore: " + workspaceName);
+            String restoreResult = workspaceManager.restoreWorkspace(workspace, hostManager.getRegisteredHosts(), chatArchiveManager);
+            if (!restoreResult.startsWith("OK")) {
+                connection.sendLine(restoreResult);
+                return;
+            }
+            workspace = workspaceManager.findByName(workspaceName);
+        }
+
         Token newToken = tokenManager.createToken(loggedInUserId, workspaceName);
-        System.out.println("[ClientHandler] connect-workspace name=" + workspaceName
-                + " userId=" + loggedInUserId + " -> token=" + newToken.token()
-                + " host=" + workspace.hostIp() + ":" + workspace.port());
         connection.sendLine("OK " + workspace.hostIp() + " " + workspace.port() + " " + newToken.token());
     }
-
     private String registerUser(String phoneNumber, String password) {
         return userManager.register(phoneNumber, password);
     }

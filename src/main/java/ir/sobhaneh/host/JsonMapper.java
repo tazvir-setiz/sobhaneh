@@ -1,6 +1,7 @@
 package ir.sobhaneh.host;
 
 import com.google.gson.Gson;
+import ir.sobhaneh.host.models.ChatStoreDto;
 import ir.sobhaneh.host.models.ChatSummary;
 import ir.sobhaneh.host.models.IncomingMessagePayload;
 import ir.sobhaneh.host.models.Message;
@@ -24,5 +25,13 @@ public class JsonMapper {
 
     public String chatSummariesToJson(List<ChatSummary> chatSummaries) {
         return gson.toJson(chatSummaries);
+    }
+
+    public String chatStoreDataToJson(ChatStoreDto chatStoreDto) {
+        return gson.toJson(chatStoreDto);
+    }
+
+    public ChatStoreDto chatStoreDataFromJson(String json) {
+        return gson.fromJson(json, ChatStoreDto.class);
     }
 }

@@ -5,8 +5,10 @@ package ir.sobhaneh.central;
 
 import ir.sobhaneh.central.models.HostInfo;
 import ir.sobhaneh.central.models.WorkspaceInfo;
+import ir.sobhaneh.host.ChatStore;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,5 +133,40 @@ public class WorkspaceManager {
     public void importWorkspaces(Map<String, WorkspaceInfo> savedWorkspaces) {
         workspaces.clear();
         workspaces.putAll(savedWorkspaces);
+    }
+
+    public Collection<WorkspaceInfo> getAllWorkspacesRaw() {
+        return workspaces.values();
+    }
+
+    public String restoreWorkspace(WorkspaceInfo oldInfo, List<HostInfo> registeredHosts,
+                                   ChatArchiveManager chatArchiveManager) throws IOException {
+        System.out.println("[WorkspaceManager] restoreWorkspace requested: name=" + oldInfo.name());
+        HostPortReservation reservation;
+        synchronized (createLock) {
+            reservation = reserveHostAndPort(registeredHosts);
+            if (reservation == null) {
+                return ERROR_NO_HOST;
+            }
+        }
+
+        boolean confirmed = notifyHost(reservation.host(), reservation.port(), oldInfo.creatorUserId());
+        if (!confirmed) {
+            reservation.host().releasePort(reservation.port());
+            return ERROR_HOST_REJECTED;
+        }
+
+        ChatStore archivedChatStore = chatArchiveManager.getWorkspaceChatStore(oldInfo.name());
+        if (archivedChatStore != null) {
+            String json = new ir.sobhaneh.host.JsonMapper().chatStoreDataToJson(archivedChatStore.toChatStoreData());
+            String restoreResponse = reservation.host().getConnectionListener()
+                    .sendAndWait("restore-chats " + reservation.port() + " " + json);
+            System.out.println("[WorkspaceManager] restore-chats response: " + restoreResponse);
+        }
+
+        WorkspaceInfo newInfo = buildWorkspaceInfo(oldInfo.name(), reservation, oldInfo.creatorUserId());
+        workspaces.put(oldInfo.name(), newInfo);
+
+        return buildSuccessResponse(reservation);
     }
 }
